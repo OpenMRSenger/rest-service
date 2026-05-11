@@ -90,8 +90,8 @@ public class SecurePostAdapter implements MessageAdapter {
             String lastResponse = null;
             for (String recipient : recipients) {
                 String jsonPayload = String.format(
-                    "{\"format\": \"%s\", \"recipient\": \"%s\", \"body\": \"%s\"}",
-                    format, recipient, escapeJson(content)
+                    "{\"format\": \"%s\", \"recipient\": \"%s\", \"body\": \"%s\", \"subject\": \"Message from %s\"}",
+                    format, recipient, escapeJson(content), "SecurePost Adapter"
                 );
 
                 HttpRequest request = HttpRequest.newBuilder()

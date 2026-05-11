@@ -1,17 +1,20 @@
 package OpenMRSenger.rest_service.application.adapters;
 
 import OpenMRSenger.rest_service.application.SendMessageCommand;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@Component
 public class SwiftSendAdapter implements MessageAdapter {
 
     private final RestTemplate restTemplate;
@@ -19,7 +22,11 @@ public class SwiftSendAdapter implements MessageAdapter {
     private final String apiKey;
     private final String studentGroup;
 
-    public SwiftSendAdapter(RestTemplate restTemplate, String apiUrl, String apiKey, String studentGroup) {
+    public SwiftSendAdapter(
+            RestTemplate restTemplate,
+            @Value("${SWIFT_SEND_API_URL}") String apiUrl,
+            @Value("${SWIFT_SEND_API_KEY}") String apiKey,
+            @Value("${SWIFT_SEND_STUDENT_GROUP}") String studentGroup) {
         this.restTemplate = restTemplate;
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
@@ -40,7 +47,7 @@ public class SwiftSendAdapter implements MessageAdapter {
             payload.put("Content", command.getContent());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.exchange(apiUrl + "/swiftsend", HttpMethod.POST, request, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
 
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.putAll(response.getHeaders());
