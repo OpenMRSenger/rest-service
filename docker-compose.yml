@@ -4,6 +4,6 @@ services:
     ports:
       - "8888:8081"
     environment:
-      - SWIFT_SEND_API_URL=http://host.docker.internal:1337/swiftsend
+      - BASE_API_URL=http://host.docker.internal:1337/swiftsend
       - SWIFT_SEND_API_KEY=${SWIFT_SEND_API_KEY}
-      - SWIFT_SEND_STUDENT_GROUP=${SWIFT_SEND_STUDENT_GROUP}
+      - STUDENT_GROUP=${STUDENT_GROUP}
