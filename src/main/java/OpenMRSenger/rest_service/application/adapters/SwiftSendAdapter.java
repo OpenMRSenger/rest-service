@@ -35,9 +35,9 @@ public class SwiftSendAdapter implements MessageAdapter {
             headers.set("X-STUDENT-GROUP", studentGroup);
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("Type", command.type());
-            payload.put("Recipients", command.recipients());
-            payload.put("Content", command.content());
+            payload.put("Type", command.getType());
+            payload.put("Recipients", command.getRecipients());
+            payload.put("Content", command.getContent());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
             ResponseEntity<String> response = restTemplate.exchange(apiUrl + "/swiftsend", HttpMethod.POST, request, String.class);

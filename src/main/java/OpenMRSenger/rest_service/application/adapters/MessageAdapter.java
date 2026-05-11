@@ -6,4 +6,5 @@ import org.springframework.http.ResponseEntity;
 public interface MessageAdapter {
 
     ResponseEntity<String> send(SendMessageCommand command);
+    boolean supports(String type);
 }

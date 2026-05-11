@@ -22,9 +22,9 @@ public class MessageController {
 
     @PostMapping
     public ResponseEntity<String> send(@RequestBody SendMessageCommand command) {
-        if (command == null || command.type() == null || command.type().isBlank()
-                || command.recipients() == null || command.recipients().isEmpty()
-                || command.content() == null || command.content().isBlank()) {
+        if (command == null || command.getType() == null || command.getType().isBlank()
+                || command.getRecipients() == null || command.getRecipients().isEmpty()
+                || command.getContent() == null || command.getContent().isBlank()) {
             return ResponseEntity.badRequest().body("Missing required field");
         }
 

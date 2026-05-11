@@ -1,53 +1,45 @@
 package OpenMRSenger.rest_service.application;
 
-import OpenMRSenger.rest_service.application.adapters.AsyncFlowAdapter;
 import OpenMRSenger.rest_service.application.adapters.MessageAdapter;
-import OpenMRSenger.rest_service.application.adapters.SwiftSendAdapter;
-
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
+/**
+ * Service responsible for orchestrating message delivery.
+ * It uses the Strategy Pattern to dynamically select the correct adapter at runtime.
+ */
 @Service
 public class MessageManager {
 
-    private final MessageAdapter swiftSendAdapter;
-    private final MessageAdapter asyncFlowAdapter;
+    private static final Logger log = LoggerFactory.getLogger(MessageManager.class);
+    private final List<MessageAdapter> adapters;
 
-    public MessageManager(
-
-            @Value("${SWIFT_SEND_API_URL}") String swiftApiUrl,
-            @Value("${SWIFT_SEND_API_KEY}") String swiftApiKey,
-            @Value("${SWIFT_SEND_STUDENT_GROUP}") String swiftStudentGroup,
-
-            @Value("${ASYNC_FLOW_API_URL}") String asyncApiUrl,
-            @Value("${ASYNC_FLOW_API_KEY}") String asyncApiKey,
-            @Value("${ASYNC_FLOW_STUDENT_GROUP}") String asyncStudentGroup
-
-    ) {
-
-        RestTemplate restTemplate = new RestTemplate();
-
-        this.swiftSendAdapter = new SwiftSendAdapter(
-                restTemplate,
-                swiftApiUrl,
-                swiftApiKey,
-                swiftStudentGroup);
-
-        this.asyncFlowAdapter = new AsyncFlowAdapter(
-                restTemplate,
-                asyncApiUrl,
-                asyncApiKey,
-                asyncStudentGroup);
+    /**
+     * Spring automatically injects all beans that implement the MessageAdapter interface.
+     */
+    public MessageManager(List<MessageAdapter> adapters) {
+        this.adapters = adapters;
     }
 
+    /**
+     * Dispatches the message to the appropriate adapter based on the command type.
+     */
     public ResponseEntity<String> send(SendMessageCommand command) {
+        log.info("Attempting to dispatch message of type: {}", command.getPrefProv());
 
-        if ("ASYNC".equalsIgnoreCase(command.type())) {
-            return asyncFlowAdapter.send(command);
-        }
-
-        return swiftSendAdapter.send(command);
+        // Find the adapter that supports the requested type
+        return adapters.stream()
+                .filter(adapter -> adapter.supports(command.getPrefProv()))
+                .findFirst()
+                .map(adapter -> adapter.send(command))
+                .orElseGet(() -> {
+                    log.error("No suitable adapter found for type: {}", command.getPrefProv());
+                    return ResponseEntity.badRequest()
+                            .body("No provider found for message type: " + command.getPrefProv());
+                });
     }
 }
