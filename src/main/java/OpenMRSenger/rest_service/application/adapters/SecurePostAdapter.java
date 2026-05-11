@@ -1,8 +1,132 @@
 package OpenMRSenger.rest_service.application.adapters;
 
+import OpenMRSenger.rest_service.application.SendMessageCommand;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.util.List;
+
+@Component
 public class SecurePostAdapter implements MessageAdapter {
+    private final String baseUrl;
+    private final String clientId;
+    private final String clientSecret;
+    private final String studentGroup;
+
+    private String accessToken;
+    private Instant expiryTime;
+
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+
+    public SecurePostAdapter(
+            @Value("${BASE_API_URL}") String baseApiUrl,
+            @Value("${SECURE_POST_CLIENT_ID}") String clientId,
+            @Value("${SECURE_POST_CLIENT_SECRET}") String clientSecret,
+            @Value("${STUDENT_GROUP:3}") String studentGroup) {
+        this.baseUrl = baseApiUrl + "/securepost";
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.studentGroup = studentGroup;
+    }
+
+    /**
+     * Step 1: Obtain Access Token (with basic JSON parsing)
+     */
+    private void authenticate() throws Exception {
+        String jsonPayload = String.format(
+            "{\"clientId\": \"%s\", \"clientSecret\": \"%s\"}", 
+            clientId, clientSecret
+        );
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/auth"))
+            .header("Content-Type", "application/json")
+            .header("X-STUDENT-GROUP", studentGroup)
+            .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+            .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            // Manual parsing for example purposes (In production, use Jackson/Gson)
+            String body = response.body();
+            this.accessToken = extractValue(body, "accessToken");
+            int expiresIn = Integer.parseInt(extractValue(body, "expiresIn"));
+            
+            // Set expiry with a 10-second safety buffer
+            this.expiryTime = Instant.now().plusSeconds(expiresIn - 10);
+        } else {
+            throw new RuntimeException("Auth failed: " + response.body());
+        }
+    }
+
+    /**
+     * Checks if token is still valid
+     */
+    private synchronized String getValidToken() throws Exception {
+        if (accessToken == null || Instant.now().isAfter(expiryTime)) {
+            authenticate();
+        }
+        return accessToken;
+    }
+
+    /**
+     * Step 2: Send Message (implements MessageAdapter interface)
+     */
     @Override
-    public boolean send() {
-        return false;
+    public ResponseEntity<String> send(SendMessageCommand command) {
+        try {
+            String token = getValidToken();
+            List<String> recipients = command.recipients();
+            String content = command.content();
+            String format = command.type();
+
+            // Send message to each recipient
+            String lastResponse = null;
+            for (String recipient : recipients) {
+                String jsonPayload = String.format(
+                    "{\"format\": \"%s\", \"recipient\": \"%s\", \"body\": \"%s\"}",
+                    format, recipient, escapeJson(content)
+                );
+
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/message"))
+                    .header("Authorization", "Bearer " + token)
+                    .header("X-STUDENT-GROUP", studentGroup)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    return ResponseEntity.status(response.statusCode()).body(response.body());
+                }
+                lastResponse = response.body();
+            }
+            return ResponseEntity.ok(lastResponse);
+        } catch (Exception ex) {
+            return ResponseEntity.status(503).body("Error: " + ex.getMessage());
+        }
+    }
+
+    // Helper to extract JSON values without a library
+    private String extractValue(String json, String key) {
+        String pattern = "\"" + key + "\":\"?([^,\"}]+)\"?";
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(pattern).matcher(json);
+        return m.find() ? m.group(1) : "";
+    }
+
+    // Helper to escape JSON strings
+    private String escapeJson(String value) {
+        return value.replace("\\", "\\\\")
+                   .replace("\"", "\\\"")
+                   .replace("\n", "\\n")
+                   .replace("\r", "\\r")
+                   .replace("\t", "\\t");
     }
 }
