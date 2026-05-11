@@ -1,5 +1,6 @@
 package OpenMRSenger.rest_service.application.adapters;
 
+import OpenMRSenger.rest_service.application.SendMessageCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -10,78 +11,71 @@ public class LegacyLinkAdapter implements MessageAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(LegacyLinkAdapter.class);
 
-    // Infrastructuur & Configuratie
     private final RestTemplate restTemplate;
-    private final String apiUrl;
-    private final String username;
-    private final String password;
-    private final String studentGroup;
 
-    // Specifieke bericht data (vereist omdat send() parameterloos is)
-    private final String phoneNumber;
-    private final String messageText;
+    private String apiUrl;
+    private String username;
+    private String password;
+    private String studentGroup;
 
-    /**
-     * Constructor voor het aanmaken van een LegacyLink bericht.
-     */
-    public LegacyLinkAdapter(RestTemplate restTemplate, String apiUrl, String username,
-                             String password, String studentGroup,
-                             String phoneNumber, String messageText) {
+    public LegacyLinkAdapter(RestTemplate restTemplate, String apiUrl, String username, String password, String studentGroup) {
         this.restTemplate = restTemplate;
         this.apiUrl = apiUrl;
         this.username = username;
         this.password = password;
         this.studentGroup = studentGroup;
-        this.phoneNumber = phoneNumber;
-        this.messageText = messageText;
     }
 
     @Override
-    public boolean send() {
-        try {
-            // 1. Headers instellen (Inclusief Basic Auth en X-STUDENT-GROUP)
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_XML);
-            headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_XML_VALUE);
-            headers.add("X-STUDENT-GROUP", studentGroup);
-            headers.setBasicAuth(username, password); // Vertaalt automatisch naar Base64
-
-            // 2. XML Payload bouwen
-            String xmlPayload = buildXmlPayload(phoneNumber, messageText);
-            HttpEntity<String> entity = new HttpEntity<>(xmlPayload, headers);
-
-            // 3. Request versturen
-            log.info("Verzenden van LegacyLink SMS naar {}", phoneNumber);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl,
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
-
-            // 4. Succes controleren (Status 200 OK)
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("SMS succesvol verzonden via LegacyLink. Response: {}", response.getBody());
-                return true;
-            } else {
-                log.warn("Onverwachte succes-status van LegacyLink: {}", response.getStatusCode());
-                return false;
-            }
-
-        } catch (HttpStatusCodeException ex) {
-            // Vangt specifieke API fouten af (400, 401, 404, 500, 503)
-            log.error("LegacyLink API weigerde het verzoek: HTTP {} - {}",
-                    ex.getStatusCode(), ex.getResponseBodyAsString());
-            return false;
-
-        } catch (Exception ex) {
-            // Vangt netwerkfouten (zoals 504 Gateway Timeout of onbereikbare server) af
-            log.error("Fatale netwerkfout bij communicatie met LegacyLink", ex);
-            return false;
+    public ResponseEntity<String> send(SendMessageCommand command) {
+        if (command.recipients() == null || command.recipients().isEmpty()) {
+            return ResponseEntity.badRequest().body("No recipients specified in the command.");
         }
+
+        ResponseEntity<String> response = null;
+
+        // LegacyLink supports 1 number per XML request, so we iterate over the list
+        for (String phoneNumber : command.recipients()) {
+            try {
+                // 1. Build headers (including automatic Base64 Basic Auth)
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_XML);
+                headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_XML_VALUE);
+                headers.add("X-STUDENT-GROUP", studentGroup);
+                headers.setBasicAuth(username, password);
+
+                // 2. Build XML payload with data from the command
+                String xmlPayload = buildXmlPayload(phoneNumber, command.content());
+                HttpEntity<String> entity = new HttpEntity<>(xmlPayload, headers);
+
+                // 3. Execute request
+                log.info("Sending LegacyLink SMS to {}", phoneNumber);
+                response = restTemplate.exchange(
+                        apiUrl,
+                        HttpMethod.POST,
+                        entity,
+                        String.class
+                );
+
+                log.info("SMS successfully sent to {}. Status: {}", phoneNumber, response.getStatusCode());
+
+            } catch (HttpStatusCodeException ex) {
+                log.error("LegacyLink API rejected request for {}: HTTP {} - {}",
+                        phoneNumber, ex.getStatusCode(), ex.getResponseBodyAsString());
+
+                return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+
+            } catch (Exception ex) {
+                log.error("Fatal network error during communication with LegacyLink for {}", phoneNumber, ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Internal server error: service unreachable.");
+            }
+        }
+        return response;
     }
 
     private String buildXmlPayload(String phone, String text) {
+        // Basic escaping to prevent invalid XML
         String safeText = text.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
 
         return """
