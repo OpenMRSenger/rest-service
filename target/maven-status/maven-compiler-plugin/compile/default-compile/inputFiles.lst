@@ -1,3 +1,9 @@
-C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\Greeting.java
-C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\GreetingController.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\application\adapters\MessageAdapter.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\application\adapters\SwiftSendAdapter.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\application\AppointmentManager.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\application\MessageManager.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\application\SendMessageCommand.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\dal\DAOFactory.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\domain\Appointment.java
+C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\presentation\MessageController.java
 C:\Avans\Jaar_2\periode_2.4\rest-service\src\main\java\OpenMRSenger\rest_service\RestServiceApplication.java
