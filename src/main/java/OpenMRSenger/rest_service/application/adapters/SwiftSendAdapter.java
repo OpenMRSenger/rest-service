@@ -40,7 +40,7 @@ public class SwiftSendAdapter implements MessageAdapter {
             payload.put("Content", command.content());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(apiUrl + "/swiftsend", HttpMethod.POST, request, String.class);
 
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.putAll(response.getHeaders());

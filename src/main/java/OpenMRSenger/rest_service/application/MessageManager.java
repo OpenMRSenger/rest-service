@@ -13,9 +13,9 @@ public class MessageManager {
     private final MessageAdapter messageAdapter;
 
     public MessageManager(
-            @Value("${SWIFT_SEND_API_URL}") String apiUrl,
+            @Value("${BASE_API_URL}") String apiUrl,
             @Value("${SWIFT_SEND_API_KEY}") String apiKey,
-            @Value("${SWIFT_SEND_STUDENT_GROUP}") String studentGroup
+            @Value("${STUDENT_GROUP}") String studentGroup
     ) {
         this.messageAdapter = new SwiftSendAdapter(new RestTemplate(), apiUrl, apiKey, studentGroup);
     }
