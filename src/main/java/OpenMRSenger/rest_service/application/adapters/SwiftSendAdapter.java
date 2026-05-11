@@ -54,4 +54,9 @@ public class SwiftSendAdapter implements MessageAdapter {
             return ResponseEntity.status(503).body(exception.getMessage());
         }
     }
+
+    @Override
+    public boolean supports(String type) {
+        return "SWIFTSEND".equalsIgnoreCase(type);
+    }
 }

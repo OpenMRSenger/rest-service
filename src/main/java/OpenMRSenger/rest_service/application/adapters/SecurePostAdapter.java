@@ -82,9 +82,9 @@ public class SecurePostAdapter implements MessageAdapter {
     public ResponseEntity<String> send(SendMessageCommand command) {
         try {
             String token = getValidToken();
-            List<String> recipients = command.recipients();
-            String content = command.content();
-            String format = command.type();
+            List<String> recipients = command.getRecipients();
+            String content = command.getContent();
+            String format = command.getType();
 
             // Send message to each recipient
             String lastResponse = null;
@@ -112,6 +112,11 @@ public class SecurePostAdapter implements MessageAdapter {
         } catch (Exception ex) {
             return ResponseEntity.status(503).body("Error: " + ex.getMessage());
         }
+    }
+
+    @Override
+    public boolean supports(String type) {
+        return "SECUREPOST".equalsIgnoreCase(type);
     }
 
     // Helper to extract JSON values without a library

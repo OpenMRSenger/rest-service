@@ -35,9 +35,9 @@ public class AsyncFlowAdapter implements MessageAdapter {
             headers.set("X-STUDENT-GROUP", studentGroup);
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("Type", command.type());
-            payload.put("Recipients", command.recipients());
-            payload.put("Content", command.content());
+            payload.put("Type", command.getType());
+            payload.put("Recipients", command.getRecipients());
+            payload.put("Content", command.getContent());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
             ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
@@ -53,5 +53,10 @@ public class AsyncFlowAdapter implements MessageAdapter {
         } catch (Exception exception) {
             return ResponseEntity.status(503).body("AsyncFlow Service Error: " + exception.getMessage());
         }
+    }
+
+    @Override
+    public boolean supports(String type) {
+        return "ASYNCFLOW".equalsIgnoreCase(type);
     }
 }
