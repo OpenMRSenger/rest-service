@@ -1,4 +1,4 @@
-package OpenMRSenger.rest_service.application;
+package OpenMRSenger.restservice.application;
 
 import java.util.List;
 
