@@ -1,6 +1,6 @@
-package OpenMRSenger.restservice.application.adapters;
+package openmrsenger.restservice.application.adapters;
 
-import OpenMRSenger.restservice.application.SendMessageCommand;
+import openmrsenger.restservice.application.SendMessageCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -96,7 +96,7 @@ public class LegacyLinkAdapter implements MessageAdapter {
                 <SendSmsRequest xmlns="http://legacylink.fakecomworld.com/v1">
                   <PhoneNumber>%s</PhoneNumber>
                   <MessageText>%s</MessageText>
-                  <SenderIdentification>OpenMRSenger</SenderIdentification>
+                  <SenderIdentification>openmrsenger</SenderIdentification>
                 </SendSmsRequest>
                 """.formatted(phone, safeText);
     }

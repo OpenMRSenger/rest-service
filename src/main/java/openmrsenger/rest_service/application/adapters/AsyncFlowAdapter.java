@@ -1,6 +1,6 @@
-package openmrsenger.restservice.application.adapters;
+package openmrsenger.rest_service.application.adapters;
 
-import openmrsenger.restservice.application.SendMessageCommand;
+import openmrsenger.rest_service.application.SendMessageCommand;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

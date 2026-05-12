@@ -1,6 +1,6 @@
-package OpenMRSenger.restservice.application;
+package openmrsenger.restservice.application;
 
-import OpenMRSenger.restservice.application.adapters.MessageAdapter;
+import openmrsenger.restservice.application.adapters.MessageAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
