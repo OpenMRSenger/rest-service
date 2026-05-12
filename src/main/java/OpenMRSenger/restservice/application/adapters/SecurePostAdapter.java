@@ -80,6 +80,10 @@ public class SecurePostAdapter implements MessageAdapter {
      */
     @Override
     public ResponseEntity<String> send(SendMessageCommand command) {
+        if (command.getRecipients() == null || command.getRecipients().isEmpty()) {
+            return ResponseEntity.badRequest().body("No recipients specified in the command.");
+        }
+        
         try {
             String token = getValidToken();
             List<String> recipients = command.getRecipients();

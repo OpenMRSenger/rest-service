@@ -35,6 +35,10 @@ public class SwiftSendAdapter implements MessageAdapter {
 
     @Override
     public ResponseEntity<String> send(SendMessageCommand command) {
+        if (command.getRecipients() == null || command.getRecipients().isEmpty()) {
+            return ResponseEntity.badRequest().body("No recipients specified in the command.");
+        }
+
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
