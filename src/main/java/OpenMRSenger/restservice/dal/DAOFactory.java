@@ -1,4 +1,4 @@
-package OpenMRSenger.restservice.dal;
+package openmrsenger.restservice.dal;
 
 public interface DAOFactory {
 }

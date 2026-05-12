@@ -1,6 +1,6 @@
-package OpenMRSenger.restservice.application.adapters;
+package openmrsenger.restservice.application.adapters;
 
-import OpenMRSenger.restservice.application.SendMessageCommand;
+import openmrsenger.restservice.application.SendMessageCommand;
 import org.springframework.http.ResponseEntity;
 
 public interface MessageAdapter {

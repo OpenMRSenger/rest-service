@@ -1,7 +1,7 @@
-package OpenMRSenger.restservice.presentation;
+package openmrsenger.restservice.presentation;
 
-import OpenMRSenger.restservice.application.MessageManager;
-import OpenMRSenger.restservice.application.SendMessageCommand;
+import openmrsenger.restservice.application.MessageManager;
+import openmrsenger.restservice.application.SendMessageCommand;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

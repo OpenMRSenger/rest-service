@@ -1,6 +1,6 @@
-package openmrsenger.restservice.application.adapters;
+package openmrsenger.rest_service.application.adapters;
 
-import openmrsenger.restservice.application.SendMessageCommand;
+import openmrsenger.rest_service.application.SendMessageCommand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -83,7 +83,7 @@ public class SecurePostAdapter implements MessageAdapter {
         if (command.getRecipients() == null || command.getRecipients().isEmpty()) {
             return ResponseEntity.badRequest().body("No recipients specified in the command.");
         }
-        
+
         try {
             String token = getValidToken();
             List<String> recipients = command.getRecipients();
