@@ -4,6 +4,7 @@ import openmrsenger.restservice.application.SendMessageCommand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,7 +38,7 @@ public class SecurePostAdapter implements MessageAdapter {
     /**
      * Step 1: Obtain Access Token (with basic JSON parsing)
      */
-    private void authenticate() throws Exception {
+    private void authenticate() throws IOException, InterruptedException {
         String jsonPayload = String.format(
             "{\"clientId\": \"%s\", \"clientSecret\": \"%s\"}", 
             clientId, clientSecret
@@ -57,18 +58,18 @@ public class SecurePostAdapter implements MessageAdapter {
             String body = response.body();
             this.accessToken = extractValue(body, "accessToken");
             int expiresIn = Integer.parseInt(extractValue(body, "expiresIn"));
-            
+
             // Set expiry with a 10-second safety buffer
-            this.expiryTime = Instant.now().plusSeconds(expiresIn - 10);
+            this.expiryTime = Instant.now().plusSeconds((long) expiresIn - 10);
         } else {
-            throw new RuntimeException("Auth failed: " + response.body());
+            throw new IOException("Auth failed: " + response.body());
         }
     }
 
     /**
      * Checks if token is still valid
      */
-    private synchronized String getValidToken() throws Exception {
+    private synchronized String getValidToken() throws IOException, InterruptedException {
         if (accessToken == null || Instant.now().isAfter(expiryTime)) {
             authenticate();
         }
@@ -109,7 +110,10 @@ public class SecurePostAdapter implements MessageAdapter {
                 lastResponse = response.body();
             }
             return ResponseEntity.ok(lastResponse);
-        } catch (Exception ex) {
+        } catch (IOException ex) {
+            return ResponseEntity.status(503).body("Error: " + ex.getMessage());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             return ResponseEntity.status(503).body("Error: " + ex.getMessage());
         }
     }
