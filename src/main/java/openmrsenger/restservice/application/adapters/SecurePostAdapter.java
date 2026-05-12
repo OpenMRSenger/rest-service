@@ -14,6 +14,7 @@ import java.util.List;
 
 @Component
 public class SecurePostAdapter implements MessageAdapter {
+    
     private final String baseUrl;
     private final String clientId;
     private final String clientSecret;
@@ -125,9 +126,12 @@ public class SecurePostAdapter implements MessageAdapter {
 
     // Helper to extract JSON values without a library
     private String extractValue(String json, String key) {
+        if (json == null) {
+            return null;
+        }
         String pattern = "\"" + key + "\":\"?([^,\"}]+)\"?";
         java.util.regex.Matcher m = java.util.regex.Pattern.compile(pattern).matcher(json);
-        return m.find() ? m.group(1) : "";
+        return m.find() ? m.group(1) : null;
     }
 
     // Helper to escape JSON strings
