@@ -4,6 +4,8 @@ import openmrsenger.restservice.application.SendMessageCommand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,6 +15,8 @@ import java.util.List;
 
 @Component
 public class SecurePostAdapter implements MessageAdapter {
+    private static final Logger logger = LoggerFactory.getLogger(SecurePostAdapter.class);
+    
     private final String baseUrl;
     private final String clientId;
     private final String clientSecret;
@@ -55,11 +59,21 @@ public class SecurePostAdapter implements MessageAdapter {
         if (response.statusCode() == 200) {
             // Manual parsing for example purposes (In production, use Jackson/Gson)
             String body = response.body();
-            this.accessToken = extractValue(body, "accessToken");
-            int expiresIn = Integer.parseInt(extractValue(body, "expiresIn"));
-            
-            // Set expiry with a 10-second safety buffer
-            this.expiryTime = Instant.now().plusSeconds(expiresIn - 10);
+            if (body == null) {
+                throw new RuntimeException("Auth response body is null");
+            }
+            String token = extractValue(body, "accessToken");
+            String expiresInStr = extractValue(body, "expiresIn");
+            if (token == null || expiresInStr == null) {
+                throw new RuntimeException("Missing required fields in auth response");
+            }
+            try {
+                int expiresIn = Integer.parseInt(expiresInStr);
+                this.accessToken = token;
+                this.expiryTime = Instant.now().plusSeconds(expiresIn - 10);
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Invalid expiresIn value: " + expiresInStr, e);
+            }
         } else {
             throw new RuntimeException("Auth failed: " + response.body());
         }
@@ -110,6 +124,7 @@ public class SecurePostAdapter implements MessageAdapter {
             }
             return ResponseEntity.ok(lastResponse);
         } catch (Exception ex) {
+            logger.error("Error sending message via SecurePost", ex);
             return ResponseEntity.status(503).body("Error: " + ex.getMessage());
         }
     }
@@ -121,9 +136,12 @@ public class SecurePostAdapter implements MessageAdapter {
 
     // Helper to extract JSON values without a library
     private String extractValue(String json, String key) {
+        if (json == null) {
+            return null;
+        }
         String pattern = "\"" + key + "\":\"?([^,\"}]+)\"?";
         java.util.regex.Matcher m = java.util.regex.Pattern.compile(pattern).matcher(json);
-        return m.find() ? m.group(1) : "";
+        return m.find() ? m.group(1) : null;
     }
 
     // Helper to escape JSON strings
