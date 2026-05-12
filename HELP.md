@@ -1,7 +1,7 @@
 # Read Me First
 The following was discovered as part of building this project:
 
-* The original package name 'OpenMRSenger.rest-service' is invalid and this project uses 'OpenMRSenger.rest_service' instead.
+* The original package name 'openmrsenger.restservice' is invalid and this project uses 'openmrsenger.restservice' instead.
 
 # Getting Started
 
