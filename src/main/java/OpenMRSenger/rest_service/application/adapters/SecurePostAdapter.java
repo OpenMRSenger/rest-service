@@ -1,11 +1,9 @@
-package Openmrsenger.rest_service.application.adapters;
+package openmrsenger.rest_service.application.adapters;
 
+import openmrsenger.rest_service.application.SendMessageCommand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-
-import Openmrsenger.rest_service.application.SendMessageCommand;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -39,13 +37,12 @@ public class SecurePostAdapter implements MessageAdapter {
     /**
      * Step 1: Obtain Access Token (with basic JSON parsing)
      */
-    private void authenticate() {
+    private void authenticate() throws Exception {
         String jsonPayload = String.format(
             "{\"clientId\": \"%s\", \"clientSecret\": \"%s\"}", 
             clientId, clientSecret
         );
 
-        try{
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/auth"))
             .header("Content-Type", "application/json")
@@ -54,7 +51,6 @@ public class SecurePostAdapter implements MessageAdapter {
             .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
 
         if (response.statusCode() == 200) {
             // Manual parsing for example purposes (In production, use Jackson/Gson)
@@ -65,11 +61,8 @@ public class SecurePostAdapter implements MessageAdapter {
             // Set expiry with a 10-second safety buffer
             this.expiryTime = Instant.now().plusSeconds(expiresIn - 10);
         } else {
-            throw new IllegalArgumentException("Auth failed: " + response.body());
+            throw new RuntimeException("Auth failed: " + response.body());
         }
-        } catch (Exception ex) {
-                throw new RuntimeException("Authentication error: " + ex.getMessage());
-            }
     }
 
     /**
@@ -87,6 +80,10 @@ public class SecurePostAdapter implements MessageAdapter {
      */
     @Override
     public ResponseEntity<String> send(SendMessageCommand command) {
+        if (command.getRecipients() == null || command.getRecipients().isEmpty()) {
+            return ResponseEntity.badRequest().body("No recipients specified in the command.");
+        }
+
         try {
             String token = getValidToken();
             List<String> recipients = command.getRecipients();
