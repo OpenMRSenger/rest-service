@@ -1,6 +1,6 @@
-package OpenMRSenger.rest_service.application.adapters;
+package OpenMRSenger.restservice.application.adapters;
 
-import OpenMRSenger.rest_service.application.SendMessageCommand;
+import OpenMRSenger.restservice.application.SendMessageCommand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
