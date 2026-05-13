@@ -25,7 +25,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
 
     private static final String ALGORITHM = "AES/ECB/PKCS5Padding";
     // LET OP: In productie NOOIT hardcoden. Haal dit uit een environment variable of Secret Manager.
-    private static final byte[] KEY = "MijnGeheimeSleutel123!".getBytes();
+    private static final byte[] KEY = "MijnGeheimeSleutel12345!".getBytes();
 
     @Override
     public String convertToDatabaseColumn(String attribute) {

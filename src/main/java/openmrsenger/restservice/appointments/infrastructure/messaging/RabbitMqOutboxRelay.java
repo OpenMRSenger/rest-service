@@ -5,6 +5,7 @@ import openmrsenger.restservice.appointments.infrastructure.persistence.SpringDa
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class RabbitMqOutboxRelay {
     }
 
     @Scheduled(fixedDelay = 5000)
+    @Transactional
     public void processOutbox() {
         List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalse();
         
