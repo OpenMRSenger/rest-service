@@ -1,25 +1,109 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Component
 public class SwiftSendAdapter implements MessagingProviderPort {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private static final Logger log = LoggerFactory.getLogger(SwiftSendAdapter.class);
 
-    @Override
-    public boolean supports(String providerId) {
-        return "SWIFTSEND".equalsIgnoreCase(providerId);
+    private static final String PROVIDER_ID = "SWIFTSEND";
+
+    private final RestTemplate restTemplate;
+    private final String apiUrl;
+    private final String apiKey;
+    private final String studentGroup;
+
+    public SwiftSendAdapter(
+            RestTemplate restTemplate,
+            @Value("${SWIFT_SEND_API_URL}") String apiUrl,
+            @Value("${SWIFT_SEND_API_KEY}") String apiKey,
+            @Value("${SWIFT_SEND_STUDENT_GROUP}") String studentGroup) {
+        this.restTemplate = restTemplate;
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+        this.studentGroup = studentGroup;
     }
 
     @Override
-    public void sendNotification(String patientId, String phoneNumber, String messageText, String apiKey) {
-        System.out.println("--- SwiftSendAdapter ---");
-        System.out.println("Sending SMS to: " + phoneNumber);
-        System.out.println("Message: " + messageText);
-        System.out.println("Using API Key: " + apiKey);
-        // External HTTP Call would go here using RestTemplate
+    public boolean supports(String providerId) {
+        return PROVIDER_ID.equalsIgnoreCase(providerId);
+    }
+
+    @Override
+    public void sendNotification(
+            String patientId,
+            String phoneNumber,
+            String messageText,
+            String apiKeyFromMethod) {
+
+        log.info(
+                "Starting SwiftSend notification for patientId={}, phone={}",
+                patientId,
+                phoneNumber);
+
+        try {
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            headers.set("X-API-KEY", apiKey);
+            headers.set("X-STUDENT-GROUP", studentGroup);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("Type", "SMS");
+            payload.put("Recipients", new String[] { phoneNumber });
+            payload.put("Content", messageText);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+            log.debug("Sending request to SwiftSend API at {}", apiUrl);
+            log.debug("Payload={}", payload);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    apiUrl,
+                    HttpMethod.POST,
+                    request,
+                    String.class);
+
+            log.info(
+                    "SwiftSend message successfully sent. Status={}",
+                    response.getStatusCode());
+
+            log.debug("SwiftSend response body={}", response.getBody());
+
+        } catch (HttpStatusCodeException exception) {
+
+            log.error(
+                    "SwiftSend API returned error. Status={}, Body={}",
+                    exception.getStatusCode(),
+                    exception.getResponseBodyAsString());
+
+            throw new RuntimeException(
+                    "SwiftSend API Error: " + exception.getResponseBodyAsString(),
+                    exception);
+
+        } catch (Exception exception) {
+
+            log.error(
+                    "Unexpected SwiftSend error for patientId={}, phone={}",
+                    patientId,
+                    phoneNumber,
+                    exception);
+
+            throw new RuntimeException(
+                    "SwiftSend Service Error: " + exception.getMessage(),
+                    exception);
+        }
     }
 }
