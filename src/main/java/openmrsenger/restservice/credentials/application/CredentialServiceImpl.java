@@ -20,6 +20,6 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public Optional<CredentialDto> getConfig(String hospitalId, String providerName) {
         return repository.findByHospitalIdAndProviderName(hospitalId, providerName)
-                .map(credential -> new CredentialDto(credential.getProviderName(), credential.getConfigurationJson()));
+                .map(credential -> new CredentialDto(credential.providerName(), credential.configurationJson()));
     }
 }

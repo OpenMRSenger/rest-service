@@ -30,10 +30,10 @@ public class CredentialMapper {
         if (domain == null) return null;
 
         return new ProviderCredentialJpaEntity(
-                domain.getId(),
-                domain.getHospitalId(),
-                domain.getProviderName(),
-                domain.getConfigurationJson()
+                domain.id(),
+                domain.hospitalId(),
+                domain.providerName(),
+                domain.configurationJson()
         );
     }
 }

@@ -18,10 +18,10 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
     @Override
     public void save(Appointment appointment, String eventPayload) {
         AppointmentJpaEntity appointmentEntity = new AppointmentJpaEntity(
-                appointment.getId(),
-                appointment.getPatientReference(),
-                appointment.getDate(),
-                appointment.getStatus()
+                appointment.id(),
+                appointment.patientReference(),
+                appointment.date(),
+                appointment.status()
         );
         appointmentRepository.save(appointmentEntity);
 
