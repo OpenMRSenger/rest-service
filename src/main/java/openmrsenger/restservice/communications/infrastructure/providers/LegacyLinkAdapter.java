@@ -23,10 +23,10 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
 
     public LegacyLinkAdapter(
             RestTemplate restTemplate,
-            @Value("${LEGACYLINK_API_URL}") String apiUrl,
-            @Value("${LEGACYLINK_API_USERNAME}") String username,
-            @Value("${LEGACYLINK_API_PASSWORD}") String password,
-            @Value("${LEGACYLINK_STUDENT_GROUP}") String studentGroup) {
+            @Value("${legacylink.api.url}") String apiUrl,
+            @Value("${legacylink.api.username}") String username,
+            @Value("${legacylink.api.password}") String password,
+            @Value("${legacylink.api.student-group}") String studentGroup) {
         this.restTemplate = restTemplate;
         this.apiUrl = apiUrl;
         this.username = username;
