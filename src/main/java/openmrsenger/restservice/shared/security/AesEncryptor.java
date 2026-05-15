@@ -2,8 +2,6 @@ package openmrsenger.restservice.shared.security;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
@@ -14,25 +12,6 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 
-/**
- * JPA AttributeConverter voor het transparant versleutelen en ontsleutelen van
- * databasevelden.
- * * SOLID (Single Responsibility Principle):
- * Deze klasse heeft slechts één verantwoordelijkheid: het transformeren van
- * data tussen de
- * object-wereld (plain-text) en de relationele-wereld (cipher-text). De
- * entiteiten en services
- * hoeven niets af te weten van cryptografie, waardoor hun verantwoordelijkheden
- * strikt gescheiden blijven.
- * * Encryption at Rest in SaaS:
- * In een multi-tenant applicatie is de impact van een datalek catastrofaal als
- * alle API-keys
- * van elk ziekenhuis gestolen worden. Encryption at Rest zorgt ervoor dat een
- * gecompromitteerde
- * database-dump waardeloos is zonder de encryptiesleutel, die idealiter in een
- * beveiligde
- * vault (zoals AWS KMS of HashiCorp Vault) op de applicatieserver leeft.
- */
 @Converter
 public class AesEncryptor implements AttributeConverter<String, String> {
 
