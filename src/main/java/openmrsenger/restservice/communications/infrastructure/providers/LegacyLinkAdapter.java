@@ -1,6 +1,7 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.config.ProviderConfig.LegacyLinkConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -89,20 +91,31 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
                                         exception.getStatusCode(),
                                         exception.getResponseBodyAsString());
 
-                        throw new RuntimeException(
+                        throw new IllegalStateException(
                                         "LegacyLink API Error: " + exception.getResponseBodyAsString(),
                                         exception);
 
-                } catch (Exception exception) {
+                } catch (JsonProcessingException exception) {
 
                         log.error(
-                                        "Unexpected LegacyLink error for patientId={}, phone={}",
+                                        "JSON parsing error in LegacyLink configuration for patientId={}, phone={}",
                                         event.getPatientId(),
                                         event.getPhoneNumber(),
                                         exception);
 
-                        throw new RuntimeException(
-                                        "LegacyLink Service Error: " + exception.getMessage(),
+                        throw new IllegalArgumentException(
+                                        "Invalid LegacyLink configuration format", exception);
+
+                } catch (ResourceAccessException exception) {
+
+                        log.error(
+                                        "LegacyLink network error for patientId={}, phone={}",
+                                        event.getPatientId(),
+                                        event.getPhoneNumber(),
+                                        exception);
+
+                        throw new IllegalStateException(
+                                        "LegacyLink network error: " + exception.getMessage(),
                                         exception);
                 }
         }
