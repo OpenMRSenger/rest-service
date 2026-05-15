@@ -74,17 +74,4 @@ public class RestServiceApplication {
     return QueueBuilder.durable(RabbitMqTopology.DLQ_QUEUE).build();
   }
 
-  @Bean
-  public CommandLineRunner seedDatabase(SpringDataCredentialRepository credentialRepository) {
-      return args -> {
-          // Check if credentials exist to avoid duplicate inserts on restarts
-          if (credentialRepository.findByHospitalIdAndProviderName("DEFAULT_HOSPITAL", "SWIFTSEND").isEmpty()) {
-              credentialRepository.save(new ProviderCredentialJpaEntity(null, "DEFAULT_HOSPITAL", "SWIFTSEND", "your-swiftsend-api-key-here"));
-              credentialRepository.save(new ProviderCredentialJpaEntity(null, "DEFAULT_HOSPITAL", "SECUREPOST", "your-securepost-client-secret-here"));
-              credentialRepository.save(new ProviderCredentialJpaEntity(null, "DEFAULT_HOSPITAL", "ASYNCFLOW", "your-asyncflow-api-key-here"));
-              System.out.println("✅ Seeded test credentials for providers!");
-          }
-      };
-  }
-
 }
