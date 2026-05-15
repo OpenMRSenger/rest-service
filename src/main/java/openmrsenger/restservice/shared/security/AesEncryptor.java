@@ -2,6 +2,8 @@ package openmrsenger.restservice.shared.security;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -28,6 +30,7 @@ import java.util.Base64;
 @Converter
 public class AesEncryptor implements AttributeConverter<String, String> {
 
+    private static final Logger log = LoggerFactory.getLogger(AesEncryptor.class);
     private static final String ALGORITHM = "AES/ECB/PKCS5Padding";
     // LET OP: In productie NOOIT hardcoden. Haal dit uit een environment variable of Secret Manager.
     private static final byte[] KEY = "MijnGeheimeSleutel12345!".getBytes();
@@ -42,9 +45,21 @@ public class AesEncryptor implements AttributeConverter<String, String> {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, key);
             return Base64.getEncoder().encodeToString(cipher.doFinal(attribute.getBytes()));
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | 
-                 IllegalBlockSizeException | BadPaddingException e) {
-            throw new RuntimeException("Fout tijdens het versleutelen van het database attribuut.", e);
+        } catch (NoSuchAlgorithmException e) {
+            log.error("AES algorithm not available on this platform", e);
+            throw new IllegalStateException("Encryption algorithm configuration error", e);
+        } catch (NoSuchPaddingException e) {
+            log.error("PKCS5 padding not available on this platform", e);
+            throw new IllegalStateException("Encryption padding configuration error", e);
+        } catch (InvalidKeyException e) {
+            log.error("Invalid encryption key", e);
+            throw new IllegalStateException("Encryption key configuration error", e);
+        } catch (IllegalBlockSizeException e) {
+            log.error("Illegal block size during encryption", e);
+            throw new IllegalStateException("Encryption block size error", e);
+        } catch (BadPaddingException e) {
+            log.error("Bad padding during encryption", e);
+            throw new IllegalStateException("Encryption padding error", e);
         }
     }
 
@@ -58,9 +73,21 @@ public class AesEncryptor implements AttributeConverter<String, String> {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, key);
             return new String(cipher.doFinal(Base64.getDecoder().decode(dbData)));
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | 
-                 IllegalBlockSizeException | BadPaddingException e) {
-            throw new RuntimeException("Fout tijdens het ontsleutelen van het database attribuut.", e);
+        } catch (NoSuchAlgorithmException e) {
+            log.error("AES algorithm not available on this platform", e);
+            throw new IllegalStateException("Decryption algorithm configuration error", e);
+        } catch (NoSuchPaddingException e) {
+            log.error("PKCS5 padding not available on this platform", e);
+            throw new IllegalStateException("Decryption padding configuration error", e);
+        } catch (InvalidKeyException e) {
+            log.error("Invalid decryption key", e);
+            throw new IllegalStateException("Decryption key configuration error", e);
+        } catch (IllegalBlockSizeException e) {
+            log.error("Illegal block size during decryption", e);
+            throw new IllegalStateException("Decryption block size error", e);
+        } catch (BadPaddingException e) {
+            log.error("Bad padding during decryption", e);
+            throw new IllegalStateException("Decryption padding error", e);
         }
     }
 }
