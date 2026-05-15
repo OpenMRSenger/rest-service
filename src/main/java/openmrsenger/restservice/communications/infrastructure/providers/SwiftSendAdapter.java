@@ -6,7 +6,6 @@ import openmrsenger.restservice.shared.config.ProviderConfig.SwiftSendConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -24,18 +23,11 @@ public class SwiftSendAdapter implements MessagingProviderPort {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final String apiUrl;
-    private final String studentGroup;
-
     public SwiftSendAdapter(
             RestTemplate restTemplate,
-            ObjectMapper objectMapper,
-            @Value("${SWIFT_SEND_API_URL}") String apiUrl,
-            @Value("${SWIFT_SEND_STUDENT_GROUP}") String studentGroup) {
+            ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
-        this.apiUrl = apiUrl;
-        this.studentGroup = studentGroup;
     }
 
     @Override
@@ -58,7 +50,7 @@ public class SwiftSendAdapter implements MessagingProviderPort {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             headers.set("X-API-KEY", config.apiKey());
-            headers.set("X-STUDENT-GROUP", studentGroup);
+            headers.set("X-STUDENT-GROUP", config.studentGroup());
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("Type", "SMS");
@@ -67,11 +59,11 @@ public class SwiftSendAdapter implements MessagingProviderPort {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-            log.debug("Sending request to SwiftSend API at {}", apiUrl);
+            log.debug("Sending request to SwiftSend API at {}", config.apiUrl());
             log.debug("Payload={}", payload);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl,
+                    config.apiUrl(),
                     HttpMethod.POST,
                     request,
                     String.class);

@@ -7,7 +7,6 @@ import openmrsenger.restservice.shared.config.ProviderConfig.LegacyLinkConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -22,18 +21,11 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
 
         private final RestTemplate restTemplate;
         private final ObjectMapper objectMapper;
-        private final String apiUrl;
-        private final String studentGroup;
-
         public LegacyLinkAdapter(
                         RestTemplate restTemplate,
-                        ObjectMapper objectMapper,
-                        @Value("${LEGACYLINK_API_URL}") String apiUrl,
-                        @Value("${LEGACYLINK_STUDENT_GROUP}") String studentGroup) {
+                        ObjectMapper objectMapper) {
                 this.restTemplate = restTemplate;
                 this.objectMapper = objectMapper;
-                this.apiUrl = apiUrl;
-                this.studentGroup = studentGroup;
         }
 
         @Override
@@ -61,19 +53,19 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
                         headers.setBasicAuth(config.username(), config.password());
 
                         // Custom Header
-                        headers.set("X-STUDENT-GROUP", studentGroup);
+                        headers.set("X-STUDENT-GROUP", config.studentGroup());
 
                         // 2. XML Payload
                         String xmlPayload = buildXmlPayload(event.getPhoneNumber(), event.getMessageText());
 
                         HttpEntity<String> request = new HttpEntity<>(xmlPayload, headers);
 
-                        log.debug("Sending XML request to LegacyLink API at {}", apiUrl);
+                        log.debug("Sending XML request to LegacyLink API at {}", config.apiUrl());
                         log.debug("XML Payload: {}", xmlPayload);
 
                         // 3. Execute Request
                         ResponseEntity<String> response = restTemplate.exchange(
-                                        apiUrl,
+                                        config.apiUrl(),
                                         HttpMethod.POST,
                                         request,
                                         String.class);
