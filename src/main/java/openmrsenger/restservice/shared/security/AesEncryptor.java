@@ -2,6 +2,8 @@ package openmrsenger.restservice.shared.security;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
