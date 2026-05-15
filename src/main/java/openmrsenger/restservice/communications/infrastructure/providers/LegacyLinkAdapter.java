@@ -1,142 +1,65 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.config.ProviderConfig.LegacyLinkConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
-public class LegacyLinkAdapter implements MessagingProviderPort {
+public class LegacyLinkAdapter extends AbstractRestMessagingAdapter<LegacyLinkConfig> {
 
-        private static final Logger log = LoggerFactory.getLogger(LegacyLinkAdapter.class);
-        private static final String PROVIDER_ID = "LEGACYLINK";
+    private static final String PROVIDER_ID = "LEGACYLINK";
 
-        private final RestTemplate restTemplate;
-        private final ObjectMapper objectMapper;
-        private final String baseApiUrl;
+    public LegacyLinkAdapter(
+            RestTemplate restTemplate,
+            ObjectMapper objectMapper,
+            @Value("${base.api.url}") String baseApiUrl) {
+        super(restTemplate, objectMapper, baseApiUrl);
+    }
 
-        public LegacyLinkAdapter(
-                        RestTemplate restTemplate,
-                        ObjectMapper objectMapper,
-                        @Value("${base.api.url}") String baseApiUrl) {
-                this.restTemplate = restTemplate;
-                this.objectMapper = objectMapper;
-                this.baseApiUrl = baseApiUrl;
-        }
+    @Override
+    protected String getProviderId() {
+        return PROVIDER_ID;
+    }
 
-        @Override
-        public boolean supports(String providerId) {
-                return PROVIDER_ID.equalsIgnoreCase(providerId);
-        }
+    @Override
+    protected Class<LegacyLinkConfig> getConfigClass() {
+        return LegacyLinkConfig.class;
+    }
 
-        @Override
-        public void send(NotificationRequestedEvent event, String configurationJson) {
+    @Override
+    protected String getEndpointPath() {
+        return "/legacylink/sendsms";
+    }
 
-                log.info(
-                                "Starting LegacyLink notification for patientId={}, phone={}",
-                                event.getPatientId(),
-                                event.getPhoneNumber());
+    @Override
+    protected HttpHeaders buildHeaders(LegacyLinkConfig config) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_XML_VALUE));
+        headers.setBasicAuth(config.username(), config.password());
+        headers.set("X-STUDENT-GROUP", config.studentGroup());
+        return headers;
+    }
 
-                try {
-                        LegacyLinkConfig config = objectMapper.readValue(configurationJson, LegacyLinkConfig.class);
+    @Override
+    protected Object buildPayload(NotificationRequestedEvent event, LegacyLinkConfig config) {
+        String safeMessage = event.getMessageText()
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
 
-                        // 1. HTTP Headers
-                        HttpHeaders headers = new HttpHeaders();
-                        headers.setContentType(MediaType.APPLICATION_XML);
-                        headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_XML_VALUE));
-
-                        // Basic Authentication using deserialized config
-                        headers.setBasicAuth(config.username(), config.password());
-
-                        // Custom Header
-                        headers.set("X-STUDENT-GROUP", config.studentGroup());
-
-                        // 2. XML Payload
-                        String xmlPayload = buildXmlPayload(event.getPhoneNumber(), event.getMessageText());
-
-                        HttpEntity<String> request = new HttpEntity<>(xmlPayload, headers);
-
-                        String targetUrl = baseApiUrl + "/legacylink/sendsms";
-
-                        log.debug("Sending XML request to LegacyLink API at {}", targetUrl);
-                        log.debug("XML Payload: {}", xmlPayload);
-
-                        // 3. Execute Request
-                        ResponseEntity<String> response = restTemplate.exchange(
-                                        targetUrl,
-                                        HttpMethod.POST,
-                                        request,
-                                        String.class);
-
-                        log.info(
-                                        "LegacyLink message successfully sent. Status={}",
-                                        response.getStatusCode());
-
-                        log.debug("LegacyLink response body={}", response.getBody());
-
-                } catch (HttpStatusCodeException exception) {
-
-                        log.error(
-                                        "LegacyLink API error. Status={}, Body={}",
-                                        exception.getStatusCode(),
-                                        exception.getResponseBodyAsString());
-
-                        throw new IllegalStateException(
-                                        "LegacyLink API Error: " + exception.getResponseBodyAsString(),
-                                        exception);
-
-                } catch (JsonProcessingException exception) {
-
-                        log.error(
-                                        "JSON parsing error in LegacyLink configuration for patientId={}, phone={}",
-                                        event.getPatientId(),
-                                        event.getPhoneNumber(),
-                                        exception);
-
-                        throw new IllegalArgumentException(
-                                        "Invalid LegacyLink configuration format", exception);
-
-                } catch (ResourceAccessException exception) {
-
-                        log.error(
-                                        "LegacyLink network error for patientId={}, phone={}",
-                                        event.getPatientId(),
-                                        event.getPhoneNumber(),
-                                        exception);
-
-                        throw new IllegalStateException(
-                                        "LegacyLink network error: " + exception.getMessage(),
-                                        exception);
-                }
-        }
-
-        /**
-         * Builds XML payload for LegacyLink SOAP/XML API.
-         */
-        private String buildXmlPayload(String phoneNumber, String messageText) {
-
-                // Basic XML escaping
-                String safeMessage = messageText
-                                .replace("&", "&amp;")
-                                .replace("<", "&lt;")
-                                .replace(">", "&gt;");
-
-                return """
-                                <?xml version="1.0" encoding="UTF-8"?>
-                                <SendSmsRequest xmlns="http://legacylink.fakecomworld.com/v1">
-                                    <PhoneNumber>%s</PhoneNumber>
-                                    <MessageText>%s</MessageText>
-                                    <SenderIdentification>openmrsenger</SenderIdentification>
-                                </SendSmsRequest>
-                                """.formatted(phoneNumber, safeMessage);
-        }
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <SendSmsRequest xmlns="http://legacylink.fakecomworld.com/v1">
+                    <PhoneNumber>%s</PhoneNumber>
+                    <MessageText>%s</MessageText>
+                    <SenderIdentification>openmrsenger</SenderIdentification>
+                </SendSmsRequest>
+                """.formatted(event.getPhoneNumber(), safeMessage);
+    }
 }
