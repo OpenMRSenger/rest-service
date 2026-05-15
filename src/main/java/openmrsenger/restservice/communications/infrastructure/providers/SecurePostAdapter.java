@@ -7,6 +7,7 @@ import openmrsenger.restservice.shared.config.ProviderConfig.SecurePostConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -25,14 +26,18 @@ public class SecurePostAdapter implements MessagingProviderPort {
         private static final String PROVIDER_ID = "SECUREPOST";
 
         private final ObjectMapper objectMapper;
+        private final String baseApiUrl;
 
         private String accessToken;
         private Instant expiryTime;
 
         private final HttpClient httpClient = HttpClient.newHttpClient();
 
-        public SecurePostAdapter(ObjectMapper objectMapper) {
+        public SecurePostAdapter(
+                        ObjectMapper objectMapper,
+                        @Value("${base.api.url}") String baseApiUrl) {
                 this.objectMapper = objectMapper;
+                this.baseApiUrl = baseApiUrl;
         }
 
         @Override
@@ -67,15 +72,17 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                         event.getPhoneNumber(),
                                         escapeJson(event.getMessageText()));
 
+                        String targetUrl = baseApiUrl + "/securepost/message";
+
                         HttpRequest request = HttpRequest.newBuilder()
-                                        .uri(URI.create(config.apiUrl() + "/message"))
+                                        .uri(URI.create(targetUrl))
                                         .header("Authorization", "Bearer " + token)
                                         .header("X-STUDENT-GROUP", config.studentGroup())
                                         .header("Content-Type", "application/json")
                                         .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                                         .build();
 
-                        log.debug("Sending SecurePost request to {}", config.apiUrl() + "/message");
+                        log.debug("Sending SecurePost request to {}", targetUrl);
                         log.debug("Payload={}", jsonPayload);
 
                         // Step 3: Execute request
@@ -155,8 +162,10 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                 config.clientId(),
                                 config.clientSecret());
 
+                String targetUrl = baseApiUrl + "/securepost/auth";
+
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(URI.create(config.apiUrl() + "/auth"))
+                                .uri(URI.create(targetUrl))
                                 .header("Content-Type", "application/json")
                                 .header("X-STUDENT-GROUP", config.studentGroup())
                                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))

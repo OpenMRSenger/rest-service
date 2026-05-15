@@ -7,6 +7,7 @@ import openmrsenger.restservice.shared.config.ProviderConfig.LegacyLinkConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -21,11 +22,15 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
 
         private final RestTemplate restTemplate;
         private final ObjectMapper objectMapper;
+        private final String baseApiUrl;
+
         public LegacyLinkAdapter(
                         RestTemplate restTemplate,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        @Value("${base.api.url}") String baseApiUrl) {
                 this.restTemplate = restTemplate;
                 this.objectMapper = objectMapper;
+                this.baseApiUrl = baseApiUrl;
         }
 
         @Override
@@ -60,12 +65,14 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
 
                         HttpEntity<String> request = new HttpEntity<>(xmlPayload, headers);
 
-                        log.debug("Sending XML request to LegacyLink API at {}", config.apiUrl());
+                        String targetUrl = baseApiUrl + "/legacylink/sendsms";
+
+                        log.debug("Sending XML request to LegacyLink API at {}", targetUrl);
                         log.debug("XML Payload: {}", xmlPayload);
 
                         // 3. Execute Request
                         ResponseEntity<String> response = restTemplate.exchange(
-                                        config.apiUrl(),
+                                        targetUrl,
                                         HttpMethod.POST,
                                         request,
                                         String.class);
