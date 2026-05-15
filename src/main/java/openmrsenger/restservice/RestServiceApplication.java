@@ -6,8 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.boot.CommandLineRunner;
+import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
 import openmrsenger.restservice.credentials.infrastructure.persistence.SpringDataCredentialRepository;
 import openmrsenger.restservice.credentials.infrastructure.persistence.ProviderCredentialJpaEntity;
 
@@ -33,7 +35,39 @@ public class RestServiceApplication {
 
   @Bean
   public Queue appointmentEventsQueue() {
-    return new Queue("appointment.events", true);
+    return QueueBuilder.durable(RabbitMqTopology.MAIN_QUEUE).build();
+  }
+
+  @Bean
+  public Queue appointmentEventsRetry10sQueue() {
+    return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_10S)
+        .withArgument("x-message-ttl", 10000)
+        .withArgument("x-dead-letter-exchange", "")
+        .withArgument("x-dead-letter-routing-key", RabbitMqTopology.MAIN_QUEUE)
+        .build();
+  }
+
+  @Bean
+  public Queue appointmentEventsRetry60sQueue() {
+    return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_60S)
+        .withArgument("x-message-ttl", 60000)
+        .withArgument("x-dead-letter-exchange", "")
+        .withArgument("x-dead-letter-routing-key", RabbitMqTopology.MAIN_QUEUE)
+        .build();
+  }
+
+  @Bean
+  public Queue appointmentEventsRetry600sQueue() {
+    return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_600S)
+        .withArgument("x-message-ttl", 600000)
+        .withArgument("x-dead-letter-exchange", "")
+        .withArgument("x-dead-letter-routing-key", RabbitMqTopology.MAIN_QUEUE)
+        .build();
+  }
+
+  @Bean
+  public Queue appointmentEventsDlqQueue() {
+    return QueueBuilder.durable(RabbitMqTopology.DLQ_QUEUE).build();
   }
 
   @Bean
