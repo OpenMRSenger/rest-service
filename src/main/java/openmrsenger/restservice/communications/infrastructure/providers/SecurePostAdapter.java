@@ -1,6 +1,7 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.config.ProviderConfig.SecurePostConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
@@ -15,6 +16,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class SecurePostAdapter implements MessagingProviderPort {
@@ -95,7 +98,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                                 response.statusCode(),
                                                 response.body());
 
-                                throw new RuntimeException(
+                                throw new IllegalStateException(
                                                 "SecurePost API Error: " + response.body());
                         }
 
@@ -106,6 +109,17 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
                         log.debug("SecurePost response body={}", response.body());
 
+                } catch (JsonProcessingException exception) {
+
+                        log.error(
+                                        "JSON parsing error in SecurePost configuration for patientId={}, phone={}",
+                                        event.getPatientId(),
+                                        event.getPhoneNumber(),
+                                        exception);
+
+                        throw new IllegalArgumentException(
+                                        "Invalid SecurePost configuration format", exception);
+
                 } catch (IOException exception) {
 
                         log.error(
@@ -114,7 +128,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                         event.getPhoneNumber(),
                                         exception);
 
-                        throw new RuntimeException(
+                        throw new IllegalStateException(
                                         "SecurePost communication error: " + exception.getMessage(),
                                         exception);
 
@@ -128,27 +142,12 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                         event.getPhoneNumber(),
                                         exception);
 
-                        throw new RuntimeException(
+                        throw new IllegalStateException(
                                         "SecurePost request interrupted",
-                                        exception);
-
-                } catch (Exception exception) {
-
-                        log.error(
-                                        "Unexpected SecurePost error for patientId={}, phone={}",
-                                        event.getPatientId(),
-                                        event.getPhoneNumber(),
-                                        exception);
-
-                        throw new RuntimeException(
-                                        "SecurePost Service Error: " + exception.getMessage(),
                                         exception);
                 }
         }
 
-        /**
-         * Authenticates with SecurePost API.
-         */
         private synchronized void authenticate(SecurePostConfig config)
                         throws IOException, InterruptedException {
 
@@ -216,18 +215,15 @@ public class SecurePostAdapter implements MessagingProviderPort {
                 return accessToken;
         }
 
-        /**
-         * Extract JSON value manually.
-         */
         private String extractValue(String json, String key) {
 
                 if (json == null) {
                         return null;
                 }
 
-                String pattern = "\"" + key + "\":\"?([^,\"}]+)\"?";
-
-                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(pattern).matcher(json);
+                String pattern = "\"" + key + "\":\"?([^,\"]+)\"?";
+                Pattern compiledPattern = Pattern.compile(pattern);
+                Matcher matcher = compiledPattern.matcher(json);
 
                 return matcher.find()
                                 ? matcher.group(1)
@@ -238,6 +234,10 @@ public class SecurePostAdapter implements MessagingProviderPort {
          * Escapes JSON string values safely.
          */
         private String escapeJson(String value) {
+
+                if (value == null) {
+                        return null;
+                }
 
                 return value.replace("\\", "\\\\")
                                 .replace("\"", "\\\"")
