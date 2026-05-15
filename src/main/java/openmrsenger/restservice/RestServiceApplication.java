@@ -17,6 +17,10 @@ import openmrsenger.restservice.credentials.infrastructure.persistence.ProviderC
 @EnableScheduling
 public class RestServiceApplication {
 
+  private static final String RABBITMQ_MESSAGE_TTL = "x-message-ttl";
+  private static final String RABBITMQ_DEAD_LETTER_EXCHANGE = "x-dead-letter-exchange";
+  private static final String RABBITMQ_DEAD_LETTER_ROUTING_KEY = "x-dead-letter-routing-key";
+
   public static void main(String[] args) {
     SpringApplication.run(RestServiceApplication.class, args);
   }
@@ -41,27 +45,27 @@ public class RestServiceApplication {
   @Bean
   public Queue appointmentEventsRetry10sQueue() {
     return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_10S)
-        .withArgument("x-message-ttl", 10000)
-        .withArgument("x-dead-letter-exchange", "")
-        .withArgument("x-dead-letter-routing-key", RabbitMqTopology.MAIN_QUEUE)
+      .withArgument(RABBITMQ_MESSAGE_TTL, 10000)
+      .withArgument(RABBITMQ_DEAD_LETTER_EXCHANGE, "")
+      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqTopology.MAIN_QUEUE)
         .build();
   }
 
   @Bean
   public Queue appointmentEventsRetry60sQueue() {
     return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_60S)
-        .withArgument("x-message-ttl", 60000)
-        .withArgument("x-dead-letter-exchange", "")
-        .withArgument("x-dead-letter-routing-key", RabbitMqTopology.MAIN_QUEUE)
+      .withArgument(RABBITMQ_MESSAGE_TTL, 60000)
+      .withArgument(RABBITMQ_DEAD_LETTER_EXCHANGE, "")
+      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqTopology.MAIN_QUEUE)
         .build();
   }
 
   @Bean
   public Queue appointmentEventsRetry600sQueue() {
     return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_600S)
-        .withArgument("x-message-ttl", 600000)
-        .withArgument("x-dead-letter-exchange", "")
-        .withArgument("x-dead-letter-routing-key", RabbitMqTopology.MAIN_QUEUE)
+      .withArgument(RABBITMQ_MESSAGE_TTL, 600000)
+      .withArgument(RABBITMQ_DEAD_LETTER_EXCHANGE, "")
+      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqTopology.MAIN_QUEUE)
         .build();
   }
 
