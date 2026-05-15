@@ -39,7 +39,7 @@ public class AppointmentServiceImpl {
         try {
             eventPayload = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize NotificationRequestedEvent", e);
+            throw new IllegalStateException("Failed to serialize NotificationRequestedEvent", e);
         }
 
         appointmentRepository.save(appointment, eventPayload);
