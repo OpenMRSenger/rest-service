@@ -27,7 +27,7 @@ public class RabbitMqOutboxRelay {
         
         for (OutboxMessageJpaEntity message : pendingMessages) {
             try {
-                rabbitTemplate.convertAndSend(message.getTopic(), message.getPayload());
+                rabbitTemplate.convertAndSend("", message.getTopic(), message.getPayload());
                 message.setProcessed(true);
                 outboxRepository.save(message);
             } catch (Exception e) {
