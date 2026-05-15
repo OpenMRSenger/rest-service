@@ -1,6 +1,6 @@
 package openmrsenger.restservice.communications.application;
 
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.credentials.api.CredentialService;
 import openmrsenger.restservice.credentials.api.CredentialDto;
