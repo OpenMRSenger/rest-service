@@ -15,19 +15,15 @@ import java.util.Base64;
 @Converter
 public class AesEncryptor implements AttributeConverter<String, String> {
 
-    private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_IV_LENGTH = 12;
-    private static final int GCM_TAG_LENGTH = 128;
-    private static final byte[] KEY;
+    private static final String ALGORITHM = getEnvOrDefault("ENCRYPTION_ALGORITHM", "AES/GCM/NoPadding");
+    private static final int GCM_IV_LENGTH = Integer.parseInt(getEnvOrDefault("ENCRYPTION_IV_LENGTH", "12"));
+    private static final int GCM_TAG_LENGTH = Integer.parseInt(getEnvOrDefault("ENCRYPTION_TAG_LENGTH", "128"));
+    private static final byte[] KEY = getEnvOrDefault("ENCRYPTION_KEY", "MijnGeheimeSleutel12345!").getBytes();
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    static {
-        String envKey = System.getenv("ENCRYPTION_KEY");
-        if (envKey != null && !envKey.trim().isEmpty()) {
-            KEY = envKey.getBytes();
-        } else {
-            KEY = "MijnGeheimeSleutel12345!".getBytes();
-        }
+    private static String getEnvOrDefault(String key, String defaultValue) {
+        String value = System.getenv(key);
+        return (value != null && !value.trim().isEmpty()) ? value : defaultValue;
     }
 
     @Override

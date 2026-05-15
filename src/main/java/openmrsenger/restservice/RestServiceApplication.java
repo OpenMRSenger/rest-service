@@ -7,9 +7,6 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Queue;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.boot.CommandLineRunner;
-import openmrsenger.restservice.credentials.infrastructure.persistence.SpringDataCredentialRepository;
-import openmrsenger.restservice.credentials.infrastructure.persistence.ProviderCredentialJpaEntity;
 
 @SpringBootApplication
 @EnableScheduling
@@ -35,6 +32,5 @@ public class RestServiceApplication {
   public Queue appointmentEventsQueue() {
     return new Queue("appointment.events", true);
   }
-
 
 }

@@ -3,7 +3,6 @@ package openmrsenger.restservice.credentials.application;
 import openmrsenger.restservice.credentials.api.CredentialDto;
 import openmrsenger.restservice.credentials.api.CredentialService;
 import openmrsenger.restservice.credentials.domain.CredentialRepository;
-import openmrsenger.restservice.credentials.domain.ProviderCredential;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
