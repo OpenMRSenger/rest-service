@@ -1,6 +1,7 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.config.ProviderConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
@@ -22,7 +23,7 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
     protected final ObjectMapper objectMapper;
     protected final String baseApiUrl;
 
-    public AbstractRestMessagingAdapter(
+    protected AbstractRestMessagingAdapter(
             RestTemplate restTemplate,
             ObjectMapper objectMapper,
             String baseApiUrl) {
@@ -75,6 +76,17 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
 
             log.debug("{} response body={}", getProviderId(), response.getBody());
 
+        } catch (JsonProcessingException exception) {
+
+            log.error("{} config JSON parse error: {}",
+                    getProviderId(),
+                    exception.getMessage(),
+                    exception);
+
+            throw new MessagingProviderException(
+                    getProviderId() + " config parse error: " + exception.getMessage(),
+                    exception);
+
         } catch (HttpStatusCodeException exception) {
 
             log.error("{} API returned error. Status={}, Body={}",
@@ -82,7 +94,7 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
                     exception.getStatusCode(),
                     exception.getResponseBodyAsString());
 
-            throw new RuntimeException(
+            throw new MessagingProviderException(
                     getProviderId() + " API Error: " + exception.getResponseBodyAsString(),
                     exception);
 
@@ -94,21 +106,10 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
                     event.getPhoneNumber(),
                     exception);
 
-            throw new RuntimeException(
+            throw new MessagingProviderException(
                     getProviderId() + " network error: " + exception.getMessage(),
                     exception);
 
-        } catch (Exception exception) {
-
-            log.error("Unexpected {} error for patientId={}, phone={}",
-                    getProviderId(),
-                    event.getPatientId(),
-                    event.getPhoneNumber(),
-                    exception);
-
-            throw new RuntimeException(
-                    getProviderId() + " Service Error: " + exception.getMessage(),
-                    exception);
         }
     }
 }
