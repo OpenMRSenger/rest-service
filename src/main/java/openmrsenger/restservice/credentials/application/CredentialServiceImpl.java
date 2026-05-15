@@ -1,5 +1,6 @@
 package openmrsenger.restservice.credentials.application;
 
+import openmrsenger.restservice.credentials.api.CredentialDto;
 import openmrsenger.restservice.credentials.api.CredentialService;
 import openmrsenger.restservice.credentials.domain.CredentialRepository;
 import openmrsenger.restservice.credentials.domain.ProviderCredential;
@@ -17,8 +18,8 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     @Override
-    public Optional<String> getApiKey(String hospitalId, String providerName) {
+    public Optional<CredentialDto> getConfig(String hospitalId, String providerName) {
         return repository.findByHospitalIdAndProviderName(hospitalId, providerName)
-                .map(ProviderCredential::getApiKey);
+                .map(credential -> new CredentialDto(credential.getProviderName(), credential.getConfigurationJson()));
     }
 }

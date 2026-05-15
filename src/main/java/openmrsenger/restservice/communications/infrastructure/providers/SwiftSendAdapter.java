@@ -1,6 +1,9 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
+import openmrsenger.restservice.shared.config.ProviderConfig.SwiftSendConfig;
+import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,18 +23,18 @@ public class SwiftSendAdapter implements MessagingProviderPort {
     private static final String PROVIDER_ID = "SWIFTSEND";
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
     private final String apiUrl;
-    private final String apiKey;
     private final String studentGroup;
 
     public SwiftSendAdapter(
             RestTemplate restTemplate,
+            ObjectMapper objectMapper,
             @Value("${SWIFT_SEND_API_URL}") String apiUrl,
-            @Value("${SWIFT_SEND_API_KEY}") String apiKey,
             @Value("${SWIFT_SEND_STUDENT_GROUP}") String studentGroup) {
         this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
         this.apiUrl = apiUrl;
-        this.apiKey = apiKey;
         this.studentGroup = studentGroup;
     }
 
@@ -41,29 +44,26 @@ public class SwiftSendAdapter implements MessagingProviderPort {
     }
 
     @Override
-    public void sendNotification(
-            String patientId,
-            String phoneNumber,
-            String messageText,
-            String apiKeyFromMethod) {
+    public void send(NotificationRequestedEvent event, String configurationJson) {
 
         log.info(
                 "Starting SwiftSend notification for patientId={}, phone={}",
-                patientId,
-                phoneNumber);
+                event.getPatientId(),
+                event.getPhoneNumber());
 
         try {
+            SwiftSendConfig config = objectMapper.readValue(configurationJson, SwiftSendConfig.class);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            headers.set("X-API-KEY", apiKey);
+            headers.set("X-API-KEY", config.apiKey());
             headers.set("X-STUDENT-GROUP", studentGroup);
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("Type", "SMS");
-            payload.put("Recipients", new String[] { phoneNumber });
-            payload.put("Content", messageText);
+            payload.put("Recipients", new String[] { event.getPhoneNumber() });
+            payload.put("Content", event.getMessageText());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
@@ -97,8 +97,8 @@ public class SwiftSendAdapter implements MessagingProviderPort {
 
             log.error(
                     "Unexpected SwiftSend error for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
+                    event.getPatientId(),
+                    event.getPhoneNumber(),
                     exception);
 
             throw new RuntimeException(
@@ -106,4 +106,4 @@ public class SwiftSendAdapter implements MessagingProviderPort {
                     exception);
         }
     }
-}
+}

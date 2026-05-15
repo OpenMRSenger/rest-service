@@ -21,21 +21,21 @@ public class ProviderCredentialJpaEntity {
     private String providerName;
 
     @Convert(converter = AesEncryptor.class)
-    @Column(name = "api_key", nullable = false)
-    private String apiKey;
+    @Column(name = "configuration_json", nullable = false, columnDefinition = "TEXT")
+    private String configurationJson;
 
     protected ProviderCredentialJpaEntity() {}
 
-    public ProviderCredentialJpaEntity(UUID id, String hospitalId, String providerName, String apiKey) {
+    public ProviderCredentialJpaEntity(UUID id, String hospitalId, String providerName, String configurationJson) {
         this.id = id;
         this.hospitalId = hospitalId;
         this.providerName = providerName;
-        this.apiKey = apiKey;
+        this.configurationJson = configurationJson;
     }
 
     public UUID getId() { return id; }
     public String getHospitalId() { return hospitalId; }
     public String getProviderName() { return providerName; }
-    public String getApiKey() { return apiKey; }
-    public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+    public String getConfigurationJson() { return configurationJson; }
+    public void setConfigurationJson(String configurationJson) { this.configurationJson = configurationJson; }
 }

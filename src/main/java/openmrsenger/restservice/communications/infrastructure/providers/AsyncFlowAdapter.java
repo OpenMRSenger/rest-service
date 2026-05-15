@@ -1,6 +1,9 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
+import openmrsenger.restservice.shared.config.ProviderConfig.AsyncFlowConfig;
+import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,18 +22,18 @@ public class AsyncFlowAdapter implements MessagingProviderPort {
     private static final String PROVIDER_ID = "ASYNCFLOW";
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
     private final String apiUrl;
-    private final String apiKey;
     private final String studentGroup;
 
     public AsyncFlowAdapter(
             RestTemplate restTemplate,
+            ObjectMapper objectMapper,
             @Value("${ASYNC_FLOW_API_URL}") String apiUrl,
-            @Value("${ASYNC_FLOW_API_KEY}") String apiKey,
             @Value("${ASYNC_FLOW_STUDENT_GROUP}") String studentGroup) {
         this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
         this.apiUrl = apiUrl;
-        this.apiKey = apiKey;
         this.studentGroup = studentGroup;
     }
 
@@ -40,29 +43,26 @@ public class AsyncFlowAdapter implements MessagingProviderPort {
     }
 
     @Override
-    public void sendNotification(
-            String patientId,
-            String phoneNumber,
-            String messageText,
-            String apiKeyFromMethod) {
+    public void send(NotificationRequestedEvent event, String configurationJson) {
 
         log.info("Starting AsyncFlow notification for patientId={}, phone={}",
-                patientId,
-                phoneNumber);
+                event.getPatientId(),
+                event.getPhoneNumber());
 
         try {
+            AsyncFlowConfig config = objectMapper.readValue(configurationJson, AsyncFlowConfig.class);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Gebruik de API key uit configuratie
-            headers.set("X-API-KEY", apiKey);
+            // Use the API key from the deserialized configuration
+            headers.set("X-API-KEY", config.apiKey());
 
             headers.set("X-STUDENT-GROUP", studentGroup);
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("destination", phoneNumber);
-            payload.put("content", messageText);
+            payload.put("destination", event.getPhoneNumber());
+            payload.put("content", event.getMessageText());
             payload.put("priority", "normal");
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
@@ -97,8 +97,8 @@ public class AsyncFlowAdapter implements MessagingProviderPort {
 
             log.error(
                     "Unexpected AsyncFlow error for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
+                    event.getPatientId(),
+                    event.getPhoneNumber(),
                     exception);
 
             throw new RuntimeException(
@@ -106,4 +106,4 @@ public class AsyncFlowAdapter implements MessagingProviderPort {
                     exception);
         }
     }
-}
+}

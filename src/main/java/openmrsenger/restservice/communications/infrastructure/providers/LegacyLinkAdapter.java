@@ -1,6 +1,9 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
+import openmrsenger.restservice.shared.config.ProviderConfig.LegacyLinkConfig;
+import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,21 +19,18 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
     private static final String PROVIDER_ID = "LEGACYLINK";
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
     private final String apiUrl;
-    private final String username;
-    private final String password;
     private final String studentGroup;
 
     public LegacyLinkAdapter(
             RestTemplate restTemplate,
+            ObjectMapper objectMapper,
             @Value("${LEGACYLINK_API_URL}") String apiUrl,
-            @Value("${LEGACYLINK_API_USERNAME}") String username,
-            @Value("${LEGACYLINK_API_PASSWORD}") String password,
             @Value("${LEGACYLINK_STUDENT_GROUP}") String studentGroup) {
         this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
         this.apiUrl = apiUrl;
-        this.username = username;
-        this.password = password;
         this.studentGroup = studentGroup;
     }
 
@@ -40,32 +40,29 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
     }
 
     @Override
-    public void sendNotification(
-            String patientId,
-            String phoneNumber,
-            String messageText,
-            String apiKey) {
+    public void send(NotificationRequestedEvent event, String configurationJson) {
 
         log.info(
                 "Starting LegacyLink notification for patientId={}, phone={}",
-                patientId,
-                phoneNumber);
+                event.getPatientId(),
+                event.getPhoneNumber());
 
         try {
+            LegacyLinkConfig config = objectMapper.readValue(configurationJson, LegacyLinkConfig.class);
 
             // 1. HTTP Headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_XML);
             headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_XML_VALUE));
 
-            // Basic Authentication
-            headers.setBasicAuth(username, password);
+            // Basic Authentication using deserialized config
+            headers.setBasicAuth(config.username(), config.password());
 
             // Custom Header
             headers.set("X-STUDENT-GROUP", studentGroup);
 
             // 2. XML Payload
-            String xmlPayload = buildXmlPayload(phoneNumber, messageText);
+            String xmlPayload = buildXmlPayload(event.getPhoneNumber(), event.getMessageText());
 
             HttpEntity<String> request = new HttpEntity<>(xmlPayload, headers);
 
@@ -100,8 +97,8 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
 
             log.error(
                     "Unexpected LegacyLink error for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
+                    event.getPatientId(),
+                    event.getPhoneNumber(),
                     exception);
 
             throw new RuntimeException(
@@ -130,4 +127,4 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
                 </SendSmsRequest>
                 """.formatted(phoneNumber, safeMessage);
     }
-}
+}

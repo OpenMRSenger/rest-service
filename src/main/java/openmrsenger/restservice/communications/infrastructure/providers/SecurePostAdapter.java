@@ -1,6 +1,9 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
+import openmrsenger.restservice.shared.config.ProviderConfig.SecurePostConfig;
+import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +23,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
     private static final String PROVIDER_ID = "SECUREPOST";
 
     private final String baseUrl;
-    private final String clientId;
-    private final String clientSecret;
+    private final ObjectMapper objectMapper;
     private final String studentGroup;
 
     private String accessToken;
@@ -31,12 +33,10 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
     public SecurePostAdapter(
             @Value("${BASE_API_URL}") String baseApiUrl,
-            @Value("${SECURE_POST_CLIENT_ID}") String clientId,
-            @Value("${SECURE_POST_CLIENT_SECRET}") String clientSecret,
+            ObjectMapper objectMapper,
             @Value("${SECURE_POST_STUDENT_GROUP}") String studentGroup) {
         this.baseUrl = baseApiUrl + "/securepost";
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
+        this.objectMapper = objectMapper;
         this.studentGroup = studentGroup;
     }
 
@@ -46,21 +46,18 @@ public class SecurePostAdapter implements MessagingProviderPort {
     }
 
     @Override
-    public void sendNotification(
-            String patientId,
-            String phoneNumber,
-            String messageText,
-            String apiKey) {
+    public void send(NotificationRequestedEvent event, String configurationJson) {
 
         log.info(
                 "Starting SecurePost notification for patientId={}, phone={}",
-                patientId,
-                phoneNumber);
+                event.getPatientId(),
+                event.getPhoneNumber());
 
         try {
+            SecurePostConfig config = objectMapper.readValue(configurationJson, SecurePostConfig.class);
 
             // Step 1: Get valid token
-            String token = getValidToken();
+            String token = getValidToken(config);
 
             // Step 2: Build JSON payload
             String jsonPayload = String.format(
@@ -72,8 +69,8 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                 "subject": "Message from SecurePost"
                             }
                             """,
-                    phoneNumber,
-                    escapeJson(messageText));
+                    event.getPhoneNumber(),
+                    escapeJson(event.getMessageText()));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/message"))
@@ -104,7 +101,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
             log.info(
                     "SecurePost message successfully sent to {}. Status={}",
-                    phoneNumber,
+                    event.getPhoneNumber(),
                     response.statusCode());
 
             log.debug("SecurePost response body={}", response.body());
@@ -113,8 +110,8 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
             log.error(
                     "IO error while communicating with SecurePost for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
+                    event.getPatientId(),
+                    event.getPhoneNumber(),
                     exception);
 
             throw new RuntimeException(
@@ -127,8 +124,8 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
             log.error(
                     "SecurePost request interrupted for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
+                    event.getPatientId(),
+                    event.getPhoneNumber(),
                     exception);
 
             throw new RuntimeException(
@@ -139,8 +136,8 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
             log.error(
                     "Unexpected SecurePost error for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
+                    event.getPatientId(),
+                    event.getPhoneNumber(),
                     exception);
 
             throw new RuntimeException(
@@ -152,7 +149,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
     /**
      * Authenticates with SecurePost API.
      */
-    private synchronized void authenticate()
+    private synchronized void authenticate(SecurePostConfig config)
             throws IOException, InterruptedException {
 
         log.info("Authenticating with SecurePost API");
@@ -164,8 +161,8 @@ public class SecurePostAdapter implements MessagingProviderPort {
                             "clientSecret": "%s"
                         }
                         """,
-                clientId,
-                clientSecret);
+                config.clientId(),
+                config.clientSecret());
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/auth"))
@@ -206,14 +203,14 @@ public class SecurePostAdapter implements MessagingProviderPort {
     /**
      * Returns valid token or refreshes it.
      */
-    private synchronized String getValidToken()
+    private synchronized String getValidToken(SecurePostConfig config)
             throws IOException, InterruptedException {
 
         if (accessToken == null || Instant.now().isAfter(expiryTime)) {
 
             log.debug("SecurePost token expired or missing. Refreshing token.");
 
-            authenticate();
+            authenticate(config);
         }
 
         return accessToken;
@@ -248,4 +245,4 @@ public class SecurePostAdapter implements MessagingProviderPort {
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
     }
-}
+}
