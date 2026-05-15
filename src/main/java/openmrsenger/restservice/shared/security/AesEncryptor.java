@@ -3,7 +3,6 @@ package openmrsenger.restservice.shared.security;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -71,7 +70,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
 
             return Base64.getEncoder().encodeToString(byteBuffer.array());
         } catch (Exception e) {
-            throw new RuntimeException("Fout tijdens het versleutelen van het database attribuut.", e);
+            throw new RuntimeException("Error while encrypting database attribute.", e);
         }
     }
 
@@ -92,7 +91,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
 
             return new String(cipher.doFinal(cipherText));
         } catch (Exception e) {
-            throw new RuntimeException("Fout tijdens het ontsleutelen van het database attribuut.", e);
+            throw new RuntimeException("Error while decrypting database attribute.", e);
         }
     }
 }
