@@ -42,7 +42,6 @@ public class NotificationEventListener {
             adapter.send(event, credential.configurationJson());
 
         } catch (Exception e) {
-            System.err.println("Error processing notification event: " + e.getMessage());
             // Optionally: Nack or dead letter
         }
     }
