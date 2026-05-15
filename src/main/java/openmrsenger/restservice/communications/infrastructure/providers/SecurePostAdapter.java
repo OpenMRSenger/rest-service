@@ -33,8 +33,8 @@ public class SecurePostAdapter implements MessagingProviderPort {
             @Value("${BASE_API_URL}") String baseApiUrl,
             @Value("${SECURE_POST_CLIENT_ID}") String clientId,
             @Value("${SECURE_POST_CLIENT_SECRET}") String clientSecret,
-            @Value("${SECURE_POST_STUDENT_GROUP}") String studentGroup) {
-        this.baseUrl = baseApiUrl + "/securepost";
+                        @Value("${STUDENT_GROUP}") String studentGroup) {
+                this.baseUrl = baseApiUrl;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.studentGroup = studentGroup;
