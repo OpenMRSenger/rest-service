@@ -1,122 +1,54 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
-import openmrsenger.restservice.communications.domain.MessagingProviderPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import openmrsenger.restservice.shared.config.ProviderConfig.LegacyLinkConfig;
+import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
-public class LegacyLinkAdapter implements MessagingProviderPort {
+public class LegacyLinkAdapter extends AbstractRestMessagingAdapter<LegacyLinkConfig> {
 
-    private static final Logger log = LoggerFactory.getLogger(LegacyLinkAdapter.class);
     private static final String PROVIDER_ID = "LEGACYLINK";
-
-    private final RestTemplate restTemplate;
-    private final String apiUrl;
-    private final String username;
-    private final String password;
-    private final String studentGroup;
 
     public LegacyLinkAdapter(
             RestTemplate restTemplate,
-            @Value("${legacylink.api.url}") String apiUrl,
-            @Value("${legacylink.api.username}") String username,
-            @Value("${legacylink.api.password}") String password,
-            @Value("${legacylink.api.student-group}") String studentGroup) {
-        this.restTemplate = restTemplate;
-        this.apiUrl = apiUrl;
-        this.username = username;
-        this.password = password;
-        this.studentGroup = studentGroup;
+            ObjectMapper objectMapper,
+            @Value("${base.api.url}") String baseApiUrl) {
+        super(restTemplate, objectMapper, baseApiUrl);
     }
 
     @Override
-    public boolean supports(String providerId) {
-        return PROVIDER_ID.equalsIgnoreCase(providerId);
+    protected String getProviderId() {
+        return PROVIDER_ID;
     }
 
     @Override
-    public void sendNotification(
-            String patientId,
-            String phoneNumber,
-            String messageText,
-            String apiKey) {
-
-        log.info(
-                "Starting LegacyLink notification for patientId={}, phone={}",
-                patientId,
-                phoneNumber);
-
-        try {
-
-            // 1. HTTP Headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_XML);
-            headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_XML_VALUE));
-
-            // Basic Authentication
-            headers.setBasicAuth(username, password);
-
-            // Custom Header
-            headers.set("X-STUDENT-GROUP", studentGroup);
-
-            // 2. XML Payload
-            String xmlPayload = buildXmlPayload(phoneNumber, messageText);
-
-            HttpEntity<String> request = new HttpEntity<>(xmlPayload, headers);
-
-            log.debug("Sending XML request to LegacyLink API at {}", apiUrl);
-            log.debug("XML Payload: {}", xmlPayload);
-
-            // 3. Execute Request
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl,
-                    HttpMethod.POST,
-                    request,
-                    String.class);
-
-            log.info(
-                    "LegacyLink message successfully sent. Status={}",
-                    response.getStatusCode());
-
-            log.debug("LegacyLink response body={}", response.getBody());
-
-        } catch (HttpStatusCodeException exception) {
-
-            log.error(
-                    "LegacyLink API error. Status={}, Body={}",
-                    exception.getStatusCode(),
-                    exception.getResponseBodyAsString());
-
-            throw new RuntimeException(
-                    "LegacyLink API Error: " + exception.getResponseBodyAsString(),
-                    exception);
-
-        } catch (Exception exception) {
-
-            log.error(
-                    "Unexpected LegacyLink error for patientId={}, phone={}",
-                    patientId,
-                    phoneNumber,
-                    exception);
-
-            throw new RuntimeException(
-                    "LegacyLink Service Error: " + exception.getMessage(),
-                    exception);
-        }
+    protected Class<LegacyLinkConfig> getConfigClass() {
+        return LegacyLinkConfig.class;
     }
 
-    /**
-     * Builds XML payload for LegacyLink SOAP/XML API.
-     */
-    private String buildXmlPayload(String phoneNumber, String messageText) {
+    @Override
+    protected String getEndpointPath() {
+        return "/legacylink/sendsms";
+    }
 
-        // Basic XML escaping
-        String safeMessage = messageText
+    @Override
+    protected HttpHeaders buildHeaders(LegacyLinkConfig config) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_XML_VALUE));
+        headers.setBasicAuth(config.username(), config.password());
+        headers.set("X-STUDENT-GROUP", config.studentGroup());
+        return headers;
+    }
+
+    @Override
+    protected Object buildPayload(NotificationRequestedEvent event, LegacyLinkConfig config) {
+        String safeMessage = event.getMessageText()
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
@@ -128,6 +60,6 @@ public class LegacyLinkAdapter implements MessagingProviderPort {
                     <MessageText>%s</MessageText>
                     <SenderIdentification>openmrsenger</SenderIdentification>
                 </SendSmsRequest>
-                """.formatted(phoneNumber, safeMessage);
+                """.formatted(event.getPhoneNumber(), safeMessage);
     }
 }
