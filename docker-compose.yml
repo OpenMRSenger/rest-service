@@ -1,4 +1,33 @@
 services:
+
+  fakecomworld:
+    image: ghcr.io/avansict/in2.4-fakecomworld:main
+    ports:
+      - "1337:8080"
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    depends_on:
+      - fakecomworld
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    depends_on:
+      - postgres
+      - fakecomworld
+
   rest-service:
     build: .
     ports:
@@ -12,4 +41,16 @@ services:
       - SECURE_POST_CLIENT_SECRET=${SECURE_POST_CLIENT_SECRET}
       - LEGACY_LINK_USERNAME=${LEGACY_LINK_USERNAME}
       - LEGACY_LINK_PASSWORD=${LEGACY_LINK_PASSWORD}
-
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    depends_on:
+      - fakecomworld
+      - rabbitmq
+      - postgres
