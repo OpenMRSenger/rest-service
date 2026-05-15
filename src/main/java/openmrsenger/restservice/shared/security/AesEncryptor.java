@@ -3,9 +3,14 @@ package openmrsenger.restservice.shared.security;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 /**
@@ -37,7 +42,8 @@ public class AesEncryptor implements AttributeConverter<String, String> {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, key);
             return Base64.getEncoder().encodeToString(cipher.doFinal(attribute.getBytes()));
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | 
+                 IllegalBlockSizeException | BadPaddingException e) {
             throw new RuntimeException("Fout tijdens het versleutelen van het database attribuut.", e);
         }
     }
@@ -52,7 +58,8 @@ public class AesEncryptor implements AttributeConverter<String, String> {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, key);
             return new String(cipher.doFinal(Base64.getDecoder().decode(dbData)));
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | 
+                 IllegalBlockSizeException | BadPaddingException e) {
             throw new RuntimeException("Fout tijdens het ontsleutelen van het database attribuut.", e);
         }
     }
