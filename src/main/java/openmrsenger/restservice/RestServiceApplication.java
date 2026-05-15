@@ -35,6 +35,6 @@ public class RestServiceApplication {
   public Queue appointmentEventsQueue() {
     return new Queue("appointment.events", true);
   }
-  
+
 
 }
