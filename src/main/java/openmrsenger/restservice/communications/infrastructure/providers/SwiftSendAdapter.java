@@ -1,10 +1,8 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.config.ProviderConfig.SwiftSendConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

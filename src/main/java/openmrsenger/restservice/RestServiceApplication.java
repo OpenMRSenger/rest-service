@@ -8,10 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.boot.CommandLineRunner;
 import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
-import openmrsenger.restservice.credentials.infrastructure.persistence.SpringDataCredentialRepository;
-import openmrsenger.restservice.credentials.infrastructure.persistence.ProviderCredentialJpaEntity;
+
 
 @SpringBootApplication
 @EnableScheduling

@@ -32,7 +32,6 @@ public class RabbitMqOutboxRelay {
                 outboxRepository.save(message);
             } catch (Exception e) {
                 // In production, implement retry logic or a dead letter queue
-                System.err.println("Failed to publish message ID: " + message.getId());
             }
         }
     }
