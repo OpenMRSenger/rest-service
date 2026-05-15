@@ -19,230 +19,230 @@ import java.time.Instant;
 @Component
 public class SecurePostAdapter implements MessagingProviderPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SecurePostAdapter.class);
-    private static final String PROVIDER_ID = "SECUREPOST";
+        private static final Logger log = LoggerFactory.getLogger(SecurePostAdapter.class);
+        private static final String PROVIDER_ID = "SECUREPOST";
 
-    private final String baseUrl;
-    private final ObjectMapper objectMapper;
-    private final String studentGroup;
+        private final String baseUrl;
+        private final ObjectMapper objectMapper;
+        private final String studentGroup;
 
-    private String accessToken;
-    private Instant expiryTime;
+        private String accessToken;
+        private Instant expiryTime;
 
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+        private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    public SecurePostAdapter(
-            @Value("${BASE_API_URL}") String baseApiUrl,
-            ObjectMapper objectMapper,
-            @Value("${SECURE_POST_STUDENT_GROUP}") String studentGroup) {
-        this.baseUrl = baseApiUrl + "/securepost";
-        this.objectMapper = objectMapper;
-        this.studentGroup = studentGroup;
-    }
-
-    @Override
-    public boolean supports(String providerId) {
-        return PROVIDER_ID.equalsIgnoreCase(providerId);
-    }
-
-    @Override
-    public void send(NotificationRequestedEvent event, String configurationJson) {
-
-        log.info(
-                "Starting SecurePost notification for patientId={}, phone={}",
-                event.getPatientId(),
-                event.getPhoneNumber());
-
-        try {
-            SecurePostConfig config = objectMapper.readValue(configurationJson, SecurePostConfig.class);
-
-            // Step 1: Get valid token
-            String token = getValidToken(config);
-
-            // Step 2: Build JSON payload
-            String jsonPayload = String.format(
-                    """
-                            {
-                                "format": "TEXT",
-                                "recipient": "%s",
-                                "body": "%s",
-                                "subject": "Message from SecurePost"
-                            }
-                            """,
-                    event.getPhoneNumber(),
-                    escapeJson(event.getMessageText()));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl + "/message"))
-                    .header("Authorization", "Bearer " + token)
-                    .header("X-STUDENT-GROUP", studentGroup)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                    .build();
-
-            log.debug("Sending SecurePost request to {}", baseUrl + "/message");
-            log.debug("Payload={}", jsonPayload);
-
-            // Step 3: Execute request
-            HttpResponse<String> response = httpClient.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() >= 400) {
-
-                log.error(
-                        "SecurePost API returned error. Status={}, Body={}",
-                        response.statusCode(),
-                        response.body());
-
-                throw new RuntimeException(
-                        "SecurePost API Error: " + response.body());
-            }
-
-            log.info(
-                    "SecurePost message successfully sent to {}. Status={}",
-                    event.getPhoneNumber(),
-                    response.statusCode());
-
-            log.debug("SecurePost response body={}", response.body());
-
-        } catch (IOException exception) {
-
-            log.error(
-                    "IO error while communicating with SecurePost for patientId={}, phone={}",
-                    event.getPatientId(),
-                    event.getPhoneNumber(),
-                    exception);
-
-            throw new RuntimeException(
-                    "SecurePost communication error: " + exception.getMessage(),
-                    exception);
-
-        } catch (InterruptedException exception) {
-
-            Thread.currentThread().interrupt();
-
-            log.error(
-                    "SecurePost request interrupted for patientId={}, phone={}",
-                    event.getPatientId(),
-                    event.getPhoneNumber(),
-                    exception);
-
-            throw new RuntimeException(
-                    "SecurePost request interrupted",
-                    exception);
-
-        } catch (Exception exception) {
-
-            log.error(
-                    "Unexpected SecurePost error for patientId={}, phone={}",
-                    event.getPatientId(),
-                    event.getPhoneNumber(),
-                    exception);
-
-            throw new RuntimeException(
-                    "SecurePost Service Error: " + exception.getMessage(),
-                    exception);
+        public SecurePostAdapter(
+                        @Value("${BASE_API_URL}") String baseApiUrl,
+                        ObjectMapper objectMapper,
+                        @Value("${SECURE_POST_STUDENT_GROUP}") String studentGroup) {
+                this.baseUrl = baseApiUrl + "/securepost";
+                this.objectMapper = objectMapper;
+                this.studentGroup = studentGroup;
         }
-    }
 
-    /**
-     * Authenticates with SecurePost API.
-     */
-    private synchronized void authenticate(SecurePostConfig config)
-            throws IOException, InterruptedException {
+        @Override
+        public boolean supports(String providerId) {
+                return PROVIDER_ID.equalsIgnoreCase(providerId);
+        }
 
-        log.info("Authenticating with SecurePost API");
+        @Override
+        public void send(NotificationRequestedEvent event, String configurationJson) {
 
-        String jsonPayload = String.format(
-                """
-                        {
-                            "clientId": "%s",
-                            "clientSecret": "%s"
+                log.info(
+                                "Starting SecurePost notification for patientId={}, phone={}",
+                                event.getPatientId(),
+                                event.getPhoneNumber());
+
+                try {
+                        SecurePostConfig config = objectMapper.readValue(configurationJson, SecurePostConfig.class);
+
+                        // Step 1: Get valid token
+                        String token = getValidToken(config);
+
+                        // Step 2: Build JSON payload
+                        String jsonPayload = String.format(
+                                        """
+                                                        {
+                                                            "format": "TEXT",
+                                                            "recipient": "%s",
+                                                            "body": "%s",
+                                                            "subject": "Message from SecurePost"
+                                                        }
+                                                        """,
+                                        event.getPhoneNumber(),
+                                        escapeJson(event.getMessageText()));
+
+                        HttpRequest request = HttpRequest.newBuilder()
+                                        .uri(URI.create(baseUrl + "/message"))
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-STUDENT-GROUP", studentGroup)
+                                        .header("Content-Type", "application/json")
+                                        .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                                        .build();
+
+                        log.debug("Sending SecurePost request to {}", baseUrl + "/message");
+                        log.debug("Payload={}", jsonPayload);
+
+                        // Step 3: Execute request
+                        HttpResponse<String> response = httpClient.send(
+                                        request,
+                                        HttpResponse.BodyHandlers.ofString());
+
+                        if (response.statusCode() >= 400) {
+
+                                log.error(
+                                                "SecurePost API returned error. Status={}, Body={}",
+                                                response.statusCode(),
+                                                response.body());
+
+                                throw new RuntimeException(
+                                                "SecurePost API Error: " + response.body());
                         }
-                        """,
-                config.clientId(),
-                config.clientSecret());
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/auth"))
-                .header("Content-Type", "application/json")
-                .header("X-STUDENT-GROUP", studentGroup)
-                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                .build();
+                        log.info(
+                                        "SecurePost message successfully sent to {}. Status={}",
+                                        event.getPhoneNumber(),
+                                        response.statusCode());
 
-        HttpResponse<String> response = httpClient.send(
-                request,
-                HttpResponse.BodyHandlers.ofString());
+                        log.debug("SecurePost response body={}", response.body());
 
-        if (response.statusCode() != 200) {
+                } catch (IOException exception) {
 
-            log.error(
-                    "SecurePost authentication failed. Status={}, Body={}",
-                    response.statusCode(),
-                    response.body());
+                        log.error(
+                                        "IO error while communicating with SecurePost for patientId={}, phone={}",
+                                        event.getPatientId(),
+                                        event.getPhoneNumber(),
+                                        exception);
 
-            throw new IOException(
-                    "Authentication failed: " + response.body());
+                        throw new RuntimeException(
+                                        "SecurePost communication error: " + exception.getMessage(),
+                                        exception);
+
+                } catch (InterruptedException exception) {
+
+                        Thread.currentThread().interrupt();
+
+                        log.error(
+                                        "SecurePost request interrupted for patientId={}, phone={}",
+                                        event.getPatientId(),
+                                        event.getPhoneNumber(),
+                                        exception);
+
+                        throw new RuntimeException(
+                                        "SecurePost request interrupted",
+                                        exception);
+
+                } catch (Exception exception) {
+
+                        log.error(
+                                        "Unexpected SecurePost error for patientId={}, phone={}",
+                                        event.getPatientId(),
+                                        event.getPhoneNumber(),
+                                        exception);
+
+                        throw new RuntimeException(
+                                        "SecurePost Service Error: " + exception.getMessage(),
+                                        exception);
+                }
         }
 
-        String body = response.body();
+        /**
+         * Authenticates with SecurePost API.
+         */
+        private synchronized void authenticate(SecurePostConfig config)
+                        throws IOException, InterruptedException {
 
-        this.accessToken = extractValue(body, "accessToken");
+                log.info("Authenticating with SecurePost API");
 
-        int expiresIn = Integer.parseInt(
-                extractValue(body, "expiresIn"));
+                String jsonPayload = String.format(
+                                """
+                                                {
+                                                    "clientId": "%s",
+                                                    "clientSecret": "%s"
+                                                }
+                                                """,
+                                config.clientId(),
+                                config.clientSecret());
 
-        // 10 second safety margin
-        this.expiryTime = Instant.now()
-                .plusSeconds((long) expiresIn - 10);
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(baseUrl + "/auth"))
+                                .header("Content-Type", "application/json")
+                                .header("X-STUDENT-GROUP", studentGroup)
+                                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                                .build();
 
-        log.info("SecurePost authentication successful");
-    }
+                HttpResponse<String> response = httpClient.send(
+                                request,
+                                HttpResponse.BodyHandlers.ofString());
 
-    /**
-     * Returns valid token or refreshes it.
-     */
-    private synchronized String getValidToken(SecurePostConfig config)
-            throws IOException, InterruptedException {
+                if (response.statusCode() != 200) {
 
-        if (accessToken == null || Instant.now().isAfter(expiryTime)) {
+                        log.error(
+                                        "SecurePost authentication failed. Status={}, Body={}",
+                                        response.statusCode(),
+                                        response.body());
 
-            log.debug("SecurePost token expired or missing. Refreshing token.");
+                        throw new IOException(
+                                        "Authentication failed: " + response.body());
+                }
 
-            authenticate(config);
+                String body = response.body();
+
+                this.accessToken = extractValue(body, "accessToken");
+
+                int expiresIn = Integer.parseInt(
+                                extractValue(body, "expiresIn"));
+
+                // 10 second safety margin
+                this.expiryTime = Instant.now()
+                                .plusSeconds((long) expiresIn - 10);
+
+                log.info("SecurePost authentication successful");
         }
 
-        return accessToken;
-    }
+        /**
+         * Returns valid token or refreshes it.
+         */
+        private synchronized String getValidToken(SecurePostConfig config)
+                        throws IOException, InterruptedException {
 
-    /**
-     * Extract JSON value manually.
-     */
-    private String extractValue(String json, String key) {
+                if (accessToken == null || Instant.now().isAfter(expiryTime)) {
 
-        if (json == null) {
-            return null;
+                        log.debug("SecurePost token expired or missing. Refreshing token.");
+
+                        authenticate(config);
+                }
+
+                return accessToken;
         }
 
-        String pattern = "\"" + key + "\":\"?([^,\"}]+)\"?";
+        /**
+         * Extract JSON value manually.
+         */
+        private String extractValue(String json, String key) {
 
-        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(pattern).matcher(json);
+                if (json == null) {
+                        return null;
+                }
 
-        return matcher.find()
-                ? matcher.group(1)
-                : null;
-    }
+                String pattern = "\"" + key + "\":\"?([^,\"}]+)\"?";
 
-    /**
-     * Escapes JSON string values safely.
-     */
-    private String escapeJson(String value) {
+                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(pattern).matcher(json);
 
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-    }
-}
+                return matcher.find()
+                                ? matcher.group(1)
+                                : null;
+        }
+
+        /**
+         * Escapes JSON string values safely.
+         */
+        private String escapeJson(String value) {
+
+                return value.replace("\\", "\\\\")
+                                .replace("\"", "\\\"")
+                                .replace("\n", "\\n")
+                                .replace("\r", "\\r")
+                                .replace("\t", "\\t");
+        }
+}
