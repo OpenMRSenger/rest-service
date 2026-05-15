@@ -40,6 +40,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
     private static final byte[] KEY;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     static {
         String envKey = System.getenv("ENCRYPTION_KEY");
@@ -57,7 +58,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
         }
         try {
             byte[] iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
 
             Key key = new SecretKeySpec(KEY, "AES");
             Cipher cipher = Cipher.getInstance(ALGORITHM);
@@ -72,7 +73,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
 
             return Base64.getEncoder().encodeToString(byteBuffer.array());
         } catch (Exception e) {
-            throw new RuntimeException("Error while encrypting database attribute.", e);
+            throw new EncryptionException("Error while encrypting database attribute.", e);
         }
     }
 
@@ -93,7 +94,7 @@ public class AesEncryptor implements AttributeConverter<String, String> {
 
             return new String(cipher.doFinal(cipherText));
         } catch (Exception e) {
-            throw new RuntimeException("Error while decrypting database attribute.", e);
+            throw new EncryptionException("Error while decrypting database attribute.", e);
         }
     }
 }
