@@ -1,56 +1,145 @@
-services:
+version: "3.9"
 
+services:
   fakecomworld:
     image: ghcr.io/avansict/in2.4-fakecomworld:main
+    container_name: fakecomworld
+
     ports:
       - "1337:8080"
 
+    restart: unless-stopped
+
   postgres:
     image: postgres:13
+    container_name: postgres
+
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+
     ports:
       - "5432:5432"
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
     depends_on:
       - fakecomworld
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
     ports:
       - "5672:5672"
       - "15672:15672"
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
     depends_on:
       - postgres
       - fakecomworld
 
   rest-service:
     build: .
+    container_name: rest-service
+
     ports:
       - "8888:8081"
+
     environment:
       - BASE_API_URL=http://host.docker.internal:1337
       - STUDENT_GROUP=${STUDENT_GROUP}
+
       - SWIFT_SEND_API_KEY=${SWIFT_SEND_API_KEY}
       - ASYNC_FLOW_API_KEY=${ASYNC_FLOW_API_KEY}
+
       - SECURE_POST_CLIENT_ID=${SECURE_POST_CLIENT_ID}
       - SECURE_POST_CLIENT_SECRET=${SECURE_POST_CLIENT_SECRET}
+
       - LEGACY_LINK_USERNAME=${LEGACY_LINK_USERNAME}
       - LEGACY_LINK_PASSWORD=${LEGACY_LINK_PASSWORD}
+
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+
+      # ACTUATOR / PROMETHEUS
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=*
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      - MANAGEMENT_PROMETHEUS_METRICS_EXPORT_ENABLED=true
+      - MANAGEMENT_ENDPOINT_PROMETHEUS_ACCESS=unrestricted
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
     depends_on:
       - fakecomworld
       - rabbitmq
       - postgres
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+
+    restart: unless-stopped
+
+    depends_on:
+      - rest-service
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+    restart: unless-stopped
+
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana-storage:
