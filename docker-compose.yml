@@ -27,6 +27,11 @@ services:
     depends_on:
       - postgres
       - fakecomworld
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rest-service:
     build: .
@@ -51,6 +56,9 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     depends_on:
-      - fakecomworld
-      - rabbitmq
-      - postgres
+      fakecomworld:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_started
