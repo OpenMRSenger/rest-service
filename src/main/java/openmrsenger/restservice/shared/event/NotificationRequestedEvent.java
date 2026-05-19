@@ -1,5 +1,7 @@
 package openmrsenger.restservice.shared.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -16,13 +18,24 @@ public class NotificationRequestedEvent implements DomainEvent {
     private final String messageText;
     private final String providerId; // Identifies which messaging provider to use
 
-    public NotificationRequestedEvent(String patientId, String phoneNumber, String messageText, String providerId) {
-        this.eventId = UUID.randomUUID();
-        this.occurredOn = Instant.now();
+    @JsonCreator
+    public NotificationRequestedEvent(
+            @JsonProperty("eventId") UUID eventId,
+            @JsonProperty("occurredOn") Instant occurredOn,
+            @JsonProperty("patientId") String patientId,
+            @JsonProperty("phoneNumber") String phoneNumber,
+            @JsonProperty("messageText") String messageText,
+            @JsonProperty("providerId") String providerId) {
+        this.eventId = eventId != null ? eventId : UUID.randomUUID();
+        this.occurredOn = occurredOn != null ? occurredOn : Instant.now();
         this.patientId = patientId;
         this.phoneNumber = phoneNumber;
         this.messageText = messageText;
         this.providerId = providerId;
+    }
+
+    public NotificationRequestedEvent(String patientId, String phoneNumber, String messageText, String providerId) {
+        this(null, null, patientId, phoneNumber, messageText, providerId);
     }
 
     @Override
