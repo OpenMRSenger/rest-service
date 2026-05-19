@@ -7,6 +7,9 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
 
@@ -33,6 +36,16 @@ public class RestServiceApplication {
     ObjectMapper mapper = new ObjectMapper();
     mapper.findAndRegisterModules(); // Registers JavaTimeModule for LocalDateTime etc.
     return mapper;
+  }
+
+  @Bean
+  public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+    return new RabbitAdmin(connectionFactory);
+  }
+
+  @Bean
+  public ApplicationRunner rabbitMqInitializer(RabbitAdmin rabbitAdmin) {
+    return args -> rabbitAdmin.initialize();
   }
 
   @Bean
