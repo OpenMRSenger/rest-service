@@ -54,6 +54,11 @@ services:
     depends_on:
       - postgres
       - fakecomworld
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rest-service:
     build: .
@@ -155,3 +160,9 @@ services:
 
 volumes:
   grafana-storage:
+      fakecomworld:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_started
