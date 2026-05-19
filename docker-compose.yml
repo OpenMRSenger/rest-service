@@ -54,11 +54,6 @@ services:
     depends_on:
       - postgres
       - fakecomworld
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   rest-service:
     build: .
@@ -139,7 +134,6 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
 
     volumes:
-      - grafana-storage:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
@@ -156,13 +150,8 @@ services:
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     restart: unless-stopped
-    
-
-volumes:
-  grafana-storage:
-      fakecomworld:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
