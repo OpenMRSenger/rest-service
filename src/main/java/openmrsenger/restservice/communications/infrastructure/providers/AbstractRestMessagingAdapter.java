@@ -3,7 +3,7 @@ package openmrsenger.restservice.communications.infrastructure.providers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
-import openmrsenger.restservice.shared.config.ProviderConfig;
+import openmrsenger.restservice.communications.infrastructure.config.ProviderConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
