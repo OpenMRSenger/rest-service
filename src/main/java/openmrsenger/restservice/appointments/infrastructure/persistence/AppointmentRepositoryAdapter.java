@@ -25,9 +25,14 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
         );
         appointmentRepository.save(appointmentEntity);
 
+        saveToOutbox("appointment.events", eventPayload);
+    }
+
+    @Override
+    public void saveToOutbox(String topic, String payload) {
         OutboxMessageJpaEntity outboxEntity = new OutboxMessageJpaEntity(
-                "appointment.events",
-                eventPayload
+                topic,
+                payload
         );
         outboxRepository.save(outboxEntity);
     }

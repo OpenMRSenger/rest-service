@@ -5,4 +5,9 @@ public interface AppointmentRepository {
      * Saves the appointment and the outbox event payload in a single transaction.
      */
     void save(Appointment appointment, String eventPayload);
+
+    /**
+     * Saves a payload directly to the outbox topic.
+     */
+    void saveToOutbox(String topic, String payload);
 }

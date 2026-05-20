@@ -1,6 +1,6 @@
 package openmrsenger.restservice.communications.infrastructure.providers;
 
-import openmrsenger.restservice.shared.config.ProviderConfig.AsyncFlowConfig;
+import openmrsenger.restservice.communications.infrastructure.config.ProviderConfig.AsyncFlowConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
