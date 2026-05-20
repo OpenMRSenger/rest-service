@@ -63,7 +63,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                         String jsonPayload = String.format(
                                         """
                                                         {
-                                                            "format": "TEXT",
+                                                            "format": "SMS",
                                                             "recipient": "%s",
                                                             "body": "%s",
                                                             "subject": "Message from SecurePost"
