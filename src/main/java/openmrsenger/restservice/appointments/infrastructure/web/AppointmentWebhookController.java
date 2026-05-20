@@ -1,8 +1,11 @@
 package openmrsenger.restservice.appointments.infrastructure.web;
 
 import jakarta.servlet.http.HttpServletRequest;
-import openmrsenger.restservice.appointments.application.AppointmentServiceImpl;
+import openmrsenger.restservice.appointments.application.AppointmentService;
 import openmrsenger.restservice.appointments.application.OpenMrsWebhookDto;
+import openmrsenger.restservice.appointments.application.WebhookCredentials;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,10 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/webhooks/appointments")
 public class AppointmentWebhookController {
 
-    private final AppointmentServiceImpl appointmentService;
+    private static final Logger log = LoggerFactory.getLogger(AppointmentWebhookController.class);
+
+    private final AppointmentService appointmentService;
     private final WebhookAuthenticator authenticator;
 
-    public AppointmentWebhookController(AppointmentServiceImpl appointmentService, WebhookAuthenticator authenticator) {
+    public AppointmentWebhookController(AppointmentService appointmentService, WebhookAuthenticator authenticator) {
         this.appointmentService = appointmentService;
         this.authenticator = authenticator;
     }
@@ -27,14 +32,22 @@ public class AppointmentWebhookController {
     public ResponseEntity<String> receiveAppointment(
             @RequestBody OpenMrsWebhookDto dto,
             @RequestHeader("x-messaging-provider") String messagingProvider,
+            @RequestHeader("x-hospital-name") String hospitalName,
+            @RequestHeader(value = "x-messaging-provider-token",        required = false) String providerToken,
+            @RequestHeader(value = "x-messaging-provider-username",     required = false) String providerUsername,
+            @RequestHeader(value = "x-messaging-provider-password",     required = false) String providerPassword,
+            @RequestHeader(value = "x-messaging-provider-client-id",    required = false) String clientId,
+            @RequestHeader(value = "x-messaging-provider-client-secret",required = false) String clientSecret,
             HttpServletRequest request) {
-
         if (!authenticator.authenticate(request)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid secret key.");
+            log.warn("Unauthorized webhook attempt from IP: {}", request.getRemoteAddr());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid or missing bearer token.");
         }
-
-        appointmentService.processWebhook(dto, messagingProvider);
-
+        log.info("Received appointment webhook for patient: {}, provider: {}, messaging provider: {}, hospital: {}",
+                dto.getPatientUuid(), dto.getArtsName(), messagingProvider, hospitalName);
+        WebhookCredentials credentials = new WebhookCredentials(providerToken, providerUsername, providerPassword, clientId, clientSecret);
+        appointmentService.processWebhook(dto, messagingProvider, hospitalName, credentials);
+        log.info("Appointment webhook processed and added to outbox for patient: {}", dto.getPatientUuid());
         return ResponseEntity.ok("Appointment webhook received and added to outbox.");
     }
 }

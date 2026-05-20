@@ -61,8 +61,8 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
 
             String targetUrl = baseApiUrl + getEndpointPath();
 
-            log.debug("Sending request to {} API at {}", getProviderId(), targetUrl);
-            log.debug("Payload: {}", payload);
+            log.info("Sending {} request to {} | headers={} | payload={}",
+                    getProviderId(), targetUrl, headers.toSingleValueMap(), payload);
 
             ResponseEntity<String> response = restTemplate.exchange(
                     targetUrl,
@@ -70,11 +70,8 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
                     request,
                     String.class);
 
-            log.info("{} message successfully sent. Status={}",
-                    getProviderId(),
-                    response.getStatusCode());
-
-            log.debug("{} response body={}", getProviderId(), response.getBody());
+            log.info("{} response: status={} | body={}",
+                    getProviderId(), response.getStatusCode(), response.getBody());
 
         } catch (JsonProcessingException exception) {
 
