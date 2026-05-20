@@ -33,11 +33,15 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
         private final HttpClient httpClient = HttpClient.newHttpClient();
 
+        private final String studentGroup;
+
         public SecurePostAdapter(
                         ObjectMapper objectMapper,
-                        @Value("${base.api.url}") String baseApiUrl) {
+                        @Value("${base.api.url}") String baseApiUrl,
+                        @Value("${student.group}") String studentGroup) {
                 this.objectMapper = objectMapper;
                 this.baseApiUrl = baseApiUrl;
+                this.studentGroup = studentGroup;
         }
 
         @Override
@@ -77,7 +81,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                         HttpRequest request = HttpRequest.newBuilder()
                                         .uri(URI.create(targetUrl))
                                         .header("Authorization", "Bearer " + token)
-                                        .header("X-STUDENT-GROUP", config.studentGroup())
+                                        .header("X-STUDENT-GROUP", studentGroup)
                                         .header("Content-Type", "application/json")
                                         .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                                         .build();
@@ -167,7 +171,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(URI.create(targetUrl))
                                 .header("Content-Type", "application/json")
-                                .header("X-STUDENT-GROUP", config.studentGroup())
+                                .header("X-STUDENT-GROUP", studentGroup)
                                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                                 .build();
 

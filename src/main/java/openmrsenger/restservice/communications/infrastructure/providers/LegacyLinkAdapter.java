@@ -14,11 +14,15 @@ public class LegacyLinkAdapter extends AbstractRestMessagingAdapter<LegacyLinkCo
 
     private static final String PROVIDER_ID = "LEGACYLINK";
 
+    private final String studentGroup;
+
     public LegacyLinkAdapter(
             RestTemplate restTemplate,
             ObjectMapper objectMapper,
-            @Value("${base.api.url}") String baseApiUrl) {
+            @Value("${base.api.url}") String baseApiUrl,
+            @Value("${student.group}") String studentGroup) {
         super(restTemplate, objectMapper, baseApiUrl);
+        this.studentGroup = studentGroup;
     }
 
     @Override
@@ -42,7 +46,7 @@ public class LegacyLinkAdapter extends AbstractRestMessagingAdapter<LegacyLinkCo
         headers.setContentType(MediaType.APPLICATION_XML);
         headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_XML_VALUE));
         headers.setBasicAuth(config.username(), config.password());
-        headers.set("X-STUDENT-GROUP", config.studentGroup());
+        headers.set("X-STUDENT-GROUP", studentGroup);
         return headers;
     }
 

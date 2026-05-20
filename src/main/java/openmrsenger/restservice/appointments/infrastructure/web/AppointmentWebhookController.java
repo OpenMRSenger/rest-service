@@ -3,7 +3,6 @@ package openmrsenger.restservice.appointments.infrastructure.web;
 import jakarta.servlet.http.HttpServletRequest;
 import openmrsenger.restservice.appointments.application.AppointmentService;
 import openmrsenger.restservice.appointments.application.OpenMrsWebhookDto;
-import openmrsenger.restservice.appointments.application.WebhookCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -33,20 +32,20 @@ public class AppointmentWebhookController {
             @RequestBody OpenMrsWebhookDto dto,
             @RequestHeader("x-messaging-provider") String messagingProvider,
             @RequestHeader("x-hospital-name") String hospitalName,
-            @RequestHeader(value = "x-messaging-provider-token",        required = false) String providerToken,
-            @RequestHeader(value = "x-messaging-provider-username",     required = false) String providerUsername,
-            @RequestHeader(value = "x-messaging-provider-password",     required = false) String providerPassword,
-            @RequestHeader(value = "x-messaging-provider-client-id",    required = false) String clientId,
-            @RequestHeader(value = "x-messaging-provider-client-secret",required = false) String clientSecret,
+            @RequestHeader(value = "x-provider-config", required = false) String providerConfigJson,
             HttpServletRequest request) {
+
         if (!authenticator.authenticate(request)) {
             log.warn("Unauthorized webhook attempt from IP: {}", request.getRemoteAddr());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid or missing bearer token.");
         }
+
         log.info("Received appointment webhook for patient: {}, provider: {}, messaging provider: {}, hospital: {}",
                 dto.getPatientUuid(), dto.getArtsName(), messagingProvider, hospitalName);
-        WebhookCredentials credentials = new WebhookCredentials(providerToken, providerUsername, providerPassword, clientId, clientSecret);
-        appointmentService.processWebhook(dto, messagingProvider, hospitalName, credentials);
+
+        // We sturen de rauwe configuratie JSON-string als een dom doorgeefluik direct door
+        appointmentService.processWebhook(dto, messagingProvider, hospitalName, providerConfigJson);
+
         log.info("Appointment webhook processed and added to outbox for patient: {}", dto.getPatientUuid());
         return ResponseEntity.ok("Appointment webhook received and added to outbox.");
     }
