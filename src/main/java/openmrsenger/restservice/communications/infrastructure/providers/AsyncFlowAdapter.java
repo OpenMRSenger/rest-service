@@ -17,11 +17,15 @@ public class AsyncFlowAdapter extends AbstractRestMessagingAdapter<AsyncFlowConf
 
     private static final String PROVIDER_ID = "ASYNCFLOW";
 
+    private final String studentGroup;
+
     public AsyncFlowAdapter(
             RestTemplate restTemplate,
             ObjectMapper objectMapper,
-            @Value("${base.api.url}") String baseApiUrl) {
+            @Value("${base.api.url}") String baseApiUrl,
+            @Value("${student.group}") String studentGroup) {
         super(restTemplate, objectMapper, baseApiUrl);
+        this.studentGroup = studentGroup;
     }
 
     @Override
@@ -44,7 +48,7 @@ public class AsyncFlowAdapter extends AbstractRestMessagingAdapter<AsyncFlowConf
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-API-KEY", config.apiKey());
-        headers.set("X-STUDENT-GROUP", config.studentGroup());
+        headers.set("X-STUDENT-GROUP", studentGroup);
         return headers;
     }
 
