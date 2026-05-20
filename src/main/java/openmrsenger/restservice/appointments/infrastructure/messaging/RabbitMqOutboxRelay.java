@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -26,14 +27,22 @@ public class RabbitMqOutboxRelay {
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void processOutbox() {
-        List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalse();
+        LocalDateTime now = LocalDateTime.now();
+        List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalseAndScheduledForBefore(now);
         
         if (!pendingMessages.isEmpty()) {
-            log.info("Found {} pending messages in outbox", pendingMessages.size());
+            log.info("Found {} pending messages in outbox due for delivery", pendingMessages.size());
         }
 
         for (OutboxMessageJpaEntity message : pendingMessages) {
             try {
+                if (message.getExpiresAt() != null && message.getExpiresAt().isBefore(now)) {
+                    log.warn("Message {} has expired (Expires at: {}). Skipping delivery.", message.getId(), message.getExpiresAt());
+                    message.setProcessed(true);
+                    outboxRepository.save(message);
+                    continue;
+                }
+
                 log.info("Relaying message {} to topic {}", message.getId(), message.getTopic());
                 rabbitTemplate.convertAndSend("", message.getTopic(), message.getPayload());
                 message.setProcessed(true);

@@ -4,6 +4,8 @@ import openmrsenger.restservice.appointments.domain.Appointment;
 import openmrsenger.restservice.appointments.domain.AppointmentRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
 public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
@@ -30,9 +32,16 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
     @Override
     public void saveToOutbox(String topic, String payload) {
+        saveToOutbox(topic, payload, LocalDateTime.now(), null);
+    }
+
+    @Override
+    public void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt) {
         OutboxMessageJpaEntity outboxEntity = new OutboxMessageJpaEntity(
                 topic,
-                payload
+                payload,
+                scheduledFor,
+                expiresAt
         );
         outboxRepository.save(outboxEntity);
     }
