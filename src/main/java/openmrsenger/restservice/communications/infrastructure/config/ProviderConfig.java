@@ -1,6 +1,6 @@
-package openmrsenger.restservice.shared.config;
+package openmrsenger.restservice.communications.infrastructure.config;
 
-public sealed interface ProviderConfig {
+public interface ProviderConfig {
 
     record SwiftSendConfig(String studentGroup, String apiKey) implements ProviderConfig {}
 
