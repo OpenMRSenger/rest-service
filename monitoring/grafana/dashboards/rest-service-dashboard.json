@@ -3,7 +3,7 @@
   "title": "Rest Service - Overview",
   "timezone": "browser",
   "schemaVersion": 36,
-  "version": 6,
+  "version": 7,
   "refresh": "10s",
   "panels": [
     {
@@ -31,19 +31,13 @@
         }
       },
       "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": ["lastNotNull"],
-          "fields": ""
-        },
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
         "orientation": "auto",
         "textMode": "value",
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
-        "text": {
-          "valueSize": 100
-        }
+        "text": { "valueSize": 100 }
       },
       "datasource": "prometheus"
     },
@@ -71,19 +65,13 @@
         }
       },
       "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": ["lastNotNull"],
-          "fields": ""
-        },
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
         "orientation": "auto",
         "textMode": "value",
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
-        "text": {
-          "valueSize": 100
-        }
+        "text": { "valueSize": 100 }
       },
       "datasource": "prometheus"
     },
@@ -111,19 +99,13 @@
         }
       },
       "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": ["lastNotNull"],
-          "fields": ""
-        },
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
         "orientation": "auto",
         "textMode": "value",
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
-        "text": {
-          "valueSize": 100
-        }
+        "text": { "valueSize": 100 }
       },
       "datasource": "prometheus"
     },
@@ -134,7 +116,7 @@
       "gridPos": { "x": 4, "y": 0, "w": 18, "h": 8 },
       "targets": [
         {
-          "expr": "sum(increase(rabbitmq_published_total[5m]))",
+          "expr": "round(sum(delta(rabbitmq_published_total[5m])))",
           "legendFormat": "Messages Published",
           "refId": "A"
         }
@@ -158,6 +140,58 @@
         }
       },
       "datasource": "prometheus"
+    },
+    {
+      "type": "table",
+      "title": "Messaging Outbox Logs",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
+      "datasource": "postgres",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT created_at AS \"Time\", topic AS \"Message Type\", CASE WHEN processed = true THEN 'Sent' ELSE 'Pending' END AS \"Status\", payload AS \"Content\" FROM outbox_messages ORDER BY created_at DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "showNodes": false,
+          "reducer": ["sum"],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Time" },
+            "properties": [
+              { "id": "custom.width", "value": 200 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Status" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.align", "value": "center" }
+            ]
+          }
+        ]
+      }
     }
   ],
   "templating": { "list": [] },
