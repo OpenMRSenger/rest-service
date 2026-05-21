@@ -1,0 +1,32 @@
+groups:
+  - name: rest-service-alerts
+    rules:
+      - alert: InstanceDown
+        expr: up{job="openmrsenger"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "Prometheus job openmrsenger instance {{ $labels.instance }} reported down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          (increase(http_server_requests_seconds_count{status=~"5.."}[5m])
+           / increase(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "More than 5% of requests are 5xx in the last 5 minutes."
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 95th percentile latency"
+          description: "95th percentile request latency > 1s for more than 5 minutes."

@@ -1,0 +1,57 @@
+package openmrsenger.restservice.appointments.infrastructure.messaging;
+
+import openmrsenger.restservice.appointments.infrastructure.persistence.OutboxMessageJpaEntity;
+import openmrsenger.restservice.appointments.infrastructure.persistence.SpringDataOutboxRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+
+@Component
+public class RabbitMqOutboxRelay {
+
+    private static final Logger log = LoggerFactory.getLogger(RabbitMqOutboxRelay.class);
+    private final SpringDataOutboxRepository outboxRepository;
+    private final RabbitTemplate rabbitTemplate;
+
+    public RabbitMqOutboxRelay(SpringDataOutboxRepository outboxRepository, RabbitTemplate rabbitTemplate) {
+        this.outboxRepository = outboxRepository;
+        this.rabbitTemplate = rabbitTemplate;
+    }
+
+    @Scheduled(fixedDelay = 5000) 
+    @Transactional
+    public void processOutbox() {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalseAndCancelledFalseAndScheduledForBefore(now);
+        
+        if (!pendingMessages.isEmpty()) {
+            log.info("Found {} pending messages in outbox due for delivery", pendingMessages.size());
+        }
+
+        for (OutboxMessageJpaEntity message : pendingMessages) {
+            try {
+                if (message.getExpiresAt() != null && message.getExpiresAt().isBefore(now)) {
+                    log.warn("Message {} has expired (Expires at: {}). Skipping delivery.", message.getId(), message.getExpiresAt());
+                    message.setProcessed(true);
+                    outboxRepository.save(message);
+                    continue;
+                }
+
+                log.info("Relaying message {} to topic {}", message.getId(), message.getTopic());
+                rabbitTemplate.convertAndSend("", message.getTopic(), message.getPayload());
+                message.setProcessed(true);
+                outboxRepository.save(message);
+                log.info("Successfully relayed message {}", message.getId());
+            } catch (Exception e) {
+                log.error("Failed to relay message {}", message.getId(), e);
+            }
+        }
+    }
+}

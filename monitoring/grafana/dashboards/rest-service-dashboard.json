@@ -1,0 +1,199 @@
+{
+  "uid": "rest-service",
+  "title": "Rest Service - Overview",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 7,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Rest Service Status",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "up{job=\"openmrsenger\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": { "text": "Up", "color": "green" },
+                "0": { "text": "Down", "color": "red" }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": { "valueSize": 100 }
+      },
+      "datasource": "prometheus"
+    },
+    {
+      "type": "stat",
+      "title": "DB Status",
+      "gridPos": { "x": 0, "y": 4, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "clamp_max(hikaricp_connections_active + hikaricp_connections_idle, 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": { "text": "Up", "color": "green" },
+                "0": { "text": "Down", "color": "red" }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": { "valueSize": 100 }
+      },
+      "datasource": "prometheus"
+    },
+    {
+      "type": "stat",
+      "title": "RabbitMQ Status",
+      "gridPos": { "x": 0, "y": 8, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "clamp_max(rabbitmq_connections, 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": { "text": "Up", "color": "green" },
+                "0": { "text": "Down", "color": "red" }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": { "valueSize": 100 }
+      },
+      "datasource": "prometheus"
+    },
+    {
+      "type": "barchart",
+      "title": "Message Throughput (per 5m)",
+      "interval": "5m",
+      "gridPos": { "x": 4, "y": 0, "w": 18, "h": 8 },
+      "targets": [
+        {
+          "expr": "round(sum(delta(rabbitmq_published_total[5m])))",
+          "legendFormat": "Messages Published",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "barRadius": 0,
+        "barWidth": 0.9,
+        "groupWidth": 0.7,
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "custom": { "lineWidth": 1, "fillOpacity": 80 },
+          "unit": "short"
+        }
+      },
+      "datasource": "prometheus"
+    },
+    {
+      "type": "table",
+      "title": "Messaging Outbox Logs",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
+      "datasource": "postgres",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT created_at AS \"Time\", topic AS \"Message Type\", CASE WHEN processed = true THEN 'Sent' ELSE 'Pending' END AS \"Status\", payload AS \"Content\" FROM outbox_messages ORDER BY created_at DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "showNodes": false,
+          "reducer": ["sum"],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Time" },
+            "properties": [
+              { "id": "custom.width", "value": 200 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Status" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.align", "value": "center" }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] }
+}
