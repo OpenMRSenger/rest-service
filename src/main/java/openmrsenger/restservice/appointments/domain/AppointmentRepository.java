@@ -1,5 +1,7 @@
 package openmrsenger.restservice.appointments.domain;
 
+import java.time.LocalDateTime;
+
 public interface AppointmentRepository {
     /**
      * Saves the appointment and the outbox event payload in a single transaction.
@@ -10,4 +12,9 @@ public interface AppointmentRepository {
      * Saves a payload directly to the outbox topic.
      */
     void saveToOutbox(String topic, String payload);
+
+    /**
+     * Saves a payload to the outbox with scheduling information.
+     */
+    void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt);
 }

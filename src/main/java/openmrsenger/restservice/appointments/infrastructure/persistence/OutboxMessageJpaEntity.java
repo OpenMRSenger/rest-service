@@ -25,11 +25,23 @@ public class OutboxMessageJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "scheduled_for", nullable = false)
+    private LocalDateTime scheduledFor = LocalDateTime.now();
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
     protected OutboxMessageJpaEntity() {}
 
     public OutboxMessageJpaEntity(String topic, String payload) {
+        this(topic, payload, LocalDateTime.now(), null);
+    }
+
+    public OutboxMessageJpaEntity(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt) {
         this.topic = topic;
         this.payload = payload;
+        this.scheduledFor = scheduledFor != null ? scheduledFor : LocalDateTime.now();
+        this.expiresAt = expiresAt;
     }
 
     public UUID getId() { return id; }
@@ -37,4 +49,6 @@ public class OutboxMessageJpaEntity {
     public String getPayload() { return payload; }
     public boolean isProcessed() { return processed; }
     public void setProcessed(boolean processed) { this.processed = processed; }
+    public LocalDateTime getScheduledFor() { return scheduledFor; }
+    public LocalDateTime getExpiresAt() { return expiresAt; }
 }
