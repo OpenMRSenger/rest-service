@@ -3,8 +3,6 @@ package openmrsenger.restservice.communications.application;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
-import openmrsenger.restservice.communications.infrastructure.persistence.ProcessedNotificationJpaEntity;
-import openmrsenger.restservice.communications.infrastructure.persistence.SpringDataProcessedNotificationRepository;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,16 +19,16 @@ public class NotificationEventListener {
     private static final Logger log = LoggerFactory.getLogger(NotificationEventListener.class);
     private final List<MessagingProviderPort> providers;
     private final ObjectMapper objectMapper;
-    private final SpringDataProcessedNotificationRepository processedNotificationRepository;
+    private final NotificationLogService notificationLogService;
     private final EventRetryService eventRetryService;
 
     public NotificationEventListener(List<MessagingProviderPort> providers,
                                      ObjectMapper objectMapper,
-                                     SpringDataProcessedNotificationRepository processedNotificationRepository,
+                                     NotificationLogService notificationLogService,
                                      EventRetryService eventRetryService) {
         this.providers = providers;
         this.objectMapper = objectMapper;
-        this.processedNotificationRepository = processedNotificationRepository;
+        this.notificationLogService = notificationLogService;
         this.eventRetryService = eventRetryService;
     }
 
@@ -44,10 +42,14 @@ public class NotificationEventListener {
         try {
             NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
 
-            if (processedNotificationRepository.existsById(event.getEventId())) {
-                log.warn("Duplicate notification event detected: {}. Skipping.", event.getEventId());
+            // 1. Idempotency check using the new log service
+            if (notificationLogService.isAlreadySent(event.getEventId())) {
+                log.warn("Notification for event {} already successfully sent. Skipping.", event.getEventId());
                 return;
             }
+
+            // 2. Mark as PENDING before attempting to send (in a separate transaction if possible)
+            notificationLogService.logPending(event.getEventId());
 
             log.info("Processing event {} for patient {} via provider {}", event.getEventId(), event.getPatientId(), event.getProviderId());
 
@@ -56,16 +58,25 @@ public class NotificationEventListener {
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Unsupported provider: " + event.getProviderId()));
 
-            // Actual sending
+            // 3. Attempt actual sending
             provider.send(event, event.getConfigurationJson());
 
-            // Mark as processed ONLY AFTER successful sending to allow retries on failure
-            processedNotificationRepository.save(new ProcessedNotificationJpaEntity(event.getEventId()));
+            // 4. Mark as SENT after successful sending
+            notificationLogService.logSuccess(event.getEventId());
             log.info("Successfully sent notification for patient {}", event.getPatientId());
 
         } catch (Exception e) {
             log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.", 
                     retryStage, e.getMessage());
+            
+            // 5. Try to log the failure if we have the event ID
+            try {
+                NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
+                notificationLogService.logFailure(event.getEventId(), e.getMessage());
+            } catch (Exception jsonEx) {
+                log.error("Could not log failure status because JSON is invalid", jsonEx);
+            }
+            
             eventRetryService.scheduleRetry(eventJson, retryStage, e);
         }
     }
