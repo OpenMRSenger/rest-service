@@ -64,7 +64,8 @@ public class NotificationEventListener {
             log.info("Successfully sent notification for patient {}", event.getPatientId());
 
         } catch (Exception e) {
-            log.error("Failed to process notification event. Scheduling retry.", e);
+            log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.", 
+                    retryStage, e.getMessage());
             eventRetryService.scheduleRetry(eventJson, retryStage, e);
         }
     }
