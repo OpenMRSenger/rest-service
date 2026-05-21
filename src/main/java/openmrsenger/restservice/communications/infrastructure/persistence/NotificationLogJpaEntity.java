@@ -4,13 +4,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "notification_logs")
 public class NotificationLogJpaEntity {
 
     @Id
-    private String eventId;
+    private UUID eventId;
     
     private String status; // PENDING, SENT, FAILED
     
@@ -23,17 +24,17 @@ public class NotificationLogJpaEntity {
     public NotificationLogJpaEntity() {
     }
 
-    public NotificationLogJpaEntity(String eventId) {
+    public NotificationLogJpaEntity(UUID eventId) {
         this.eventId = eventId;
         this.status = "PENDING";
         this.createdAt = LocalDateTime.now();
     }
 
-    public String getEventId() {
+    public UUID getEventId() {
         return eventId;
     }
 
-    public void setEventId(String eventId) {
+    public void setEventId(UUID eventId) {
         this.eventId = eventId;
     }
 

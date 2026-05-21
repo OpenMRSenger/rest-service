@@ -4,6 +4,7 @@ import openmrsenger.restservice.communications.application.NotificationLogServic
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 @Component
 public class NotificationLogAdapter implements NotificationLogService {
@@ -16,7 +17,7 @@ public class NotificationLogAdapter implements NotificationLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean isAlreadySent(String eventId) {
+    public boolean isAlreadySent(UUID eventId) {
         return repository.findById(eventId)
                 .map(log -> "SENT".equals(log.getStatus()))
                 .orElse(false);
@@ -24,7 +25,7 @@ public class NotificationLogAdapter implements NotificationLogService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void logPending(String eventId) {
+    public void logPending(UUID eventId) {
         NotificationLogJpaEntity entity = repository.findById(eventId)
                 .orElseGet(() -> new NotificationLogJpaEntity(eventId));
         
@@ -37,7 +38,7 @@ public class NotificationLogAdapter implements NotificationLogService {
 
     @Override
     @Transactional
-    public void logSuccess(String eventId) {
+    public void logSuccess(UUID eventId) {
         repository.findById(eventId).ifPresent(entity -> {
             entity.markAsSent();
             repository.save(entity);
@@ -46,7 +47,7 @@ public class NotificationLogAdapter implements NotificationLogService {
 
     @Override
     @Transactional
-    public void logFailure(String eventId, String error) {
+    public void logFailure(UUID eventId, String error) {
         repository.findById(eventId).ifPresent(entity -> {
             entity.markAsFailed(error);
             repository.save(entity);

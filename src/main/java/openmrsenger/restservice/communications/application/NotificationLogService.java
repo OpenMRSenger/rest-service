@@ -1,5 +1,7 @@
 package openmrsenger.restservice.communications.application;
 
+import java.util.UUID;
+
 /**
  * Service for persistently tracking the status of notifications.
  */
@@ -11,21 +13,21 @@ public interface NotificationLogService {
      * @param eventId The unique ID of the event.
      * @return true if already sent, false otherwise.
      */
-    boolean isAlreadySent(String eventId);
+    boolean isAlreadySent(UUID eventId);
 
     /**
      * Logs the intent to send a notification. Status becomes PENDING.
      *
      * @param eventId The unique ID of the event.
      */
-    void logPending(String eventId);
+    void logPending(UUID eventId);
 
     /**
      * Logs that a notification has been successfully sent. Status becomes SENT.
      *
      * @param eventId The unique ID of the event.
      */
-    void logSuccess(String eventId);
+    void logSuccess(UUID eventId);
 
     /**
      * Logs that a notification sending attempt has failed. Status becomes FAILED.
@@ -33,5 +35,5 @@ public interface NotificationLogService {
      * @param eventId The unique ID of the event.
      * @param error   The error message.
      */
-    void logFailure(String eventId, String error);
+    void logFailure(UUID eventId, String error);
 }
