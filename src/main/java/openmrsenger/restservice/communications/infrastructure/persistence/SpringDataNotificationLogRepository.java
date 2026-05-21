@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface SpringDataProcessedNotificationRepository extends JpaRepository<ProcessedNotificationJpaEntity, UUID> {
+public interface SpringDataNotificationLogRepository extends JpaRepository<NotificationLogJpaEntity, UUID> {
 }
