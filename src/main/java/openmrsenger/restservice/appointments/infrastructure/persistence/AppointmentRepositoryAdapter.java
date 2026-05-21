@@ -64,13 +64,7 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
             return;
         }
 
-        // If the same eventId was already processed (sent), use a new UUID so the
-        // NotificationEventListener dedup does not block re-delivery of updated data.
-        UUID outboxEventId = (eventId != null && outboxRepository.existsByEventIdAndProcessedTrue(eventId))
-                ? UUID.randomUUID()
-                : eventId;
-
-        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, scheduledFor, expiresAt, outboxEventId));
+        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, scheduledFor, expiresAt, eventId));
     }
 
     @Override

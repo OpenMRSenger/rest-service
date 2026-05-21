@@ -86,8 +86,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         UUID eventId = deterministicId(dto.getAppointmentUuid(), suffix);
+        // If this reminder was already sent, use a fresh payload UUID so the listener
+        // doesn't dedup it as a duplicate of the previously-delivered notification.
+        boolean alreadySent = appointmentRepository.wasNotificationSent(eventId);
+        UUID payloadEventId = alreadySent ? UUID.randomUUID() : eventId;
         NotificationRequestedEvent event = new NotificationRequestedEvent(
-                eventId,
+                payloadEventId,
                 null,
                 dto.getPatientUuid(),
                 dto.getPhoneNumber(),
