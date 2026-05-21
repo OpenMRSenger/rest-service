@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Component
@@ -24,11 +25,11 @@ public class RabbitMqOutboxRelay {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 5000) 
     @Transactional
     public void processOutbox() {
-        LocalDateTime now = LocalDateTime.now();
-        List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalseAndScheduledForBefore(now);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalseAndCancelledFalseAndScheduledForBefore(now);
         
         if (!pendingMessages.isEmpty()) {
             log.info("Found {} pending messages in outbox due for delivery", pendingMessages.size());
