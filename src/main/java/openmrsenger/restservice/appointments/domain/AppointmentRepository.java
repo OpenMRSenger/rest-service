@@ -1,20 +1,22 @@
 package openmrsenger.restservice.appointments.domain;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface AppointmentRepository {
-    /**
-     * Saves the appointment and the outbox event payload in a single transaction.
-     */
     void save(Appointment appointment, String eventPayload);
 
-    /**
-     * Saves a payload directly to the outbox topic.
-     */
+    void saveAppointment(Appointment appointment);
+
+    Optional<Appointment> findAppointmentById(UUID id);
+
     void saveToOutbox(String topic, String payload);
 
-    /**
-     * Saves a payload to the outbox with scheduling information.
-     */
-    void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt);
+    void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt, UUID eventId);
+
+    void cancelOutboxMessages(List<UUID> eventIds);
+
+    boolean wasNotificationSent(UUID eventId);
 }

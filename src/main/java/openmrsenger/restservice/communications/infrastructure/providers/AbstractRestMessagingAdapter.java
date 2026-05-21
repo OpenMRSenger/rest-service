@@ -51,6 +51,10 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
                 event.getPatientId(),
                 event.getPhoneNumber());
 
+        if (configurationJson == null || configurationJson.isBlank()) {
+            throw new MessagingProviderException(getProviderId() + ": x-provider-config header is missing or empty");
+        }
+
         try {
             T config = objectMapper.readValue(configurationJson, getConfigClass());
 

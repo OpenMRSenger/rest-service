@@ -1,6 +1,8 @@
 package openmrsenger.restservice.appointments.application;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 public class OpenMrsWebhookDto {
     private String event;
@@ -12,8 +14,8 @@ public class OpenMrsWebhookDto {
     private String phoneNumber;
     private String service;
     private String location;
-    private LocalDateTime startDateTime;
-    private LocalDateTime endDateTime;
+    private OffsetDateTime startDateTime;
+    private OffsetDateTime endDateTime;
     private String comments;
 
     // Getters and Setters
@@ -44,11 +46,15 @@ public class OpenMrsWebhookDto {
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
 
-    public LocalDateTime getStartDateTime() { return startDateTime; }
-    public void setStartDateTime(LocalDateTime startDateTime) { this.startDateTime = startDateTime; }
+    public LocalDateTime getStartDateTimeUtc() {
+        return startDateTime != null ? startDateTime.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null;
+    }
 
-    public LocalDateTime getEndDateTime() { return endDateTime; }
-    public void setEndDateTime(LocalDateTime endDateTime) { this.endDateTime = endDateTime; }
+    public OffsetDateTime getStartDateTime() { return startDateTime; }
+    public void setStartDateTime(OffsetDateTime startDateTime) { this.startDateTime = startDateTime; }
+
+    public OffsetDateTime getEndDateTime() { return endDateTime; }
+    public void setEndDateTime(OffsetDateTime endDateTime) { this.endDateTime = endDateTime; }
 
     public String getComments() { return comments; }
     public void setComments(String comments) { this.comments = comments; }
