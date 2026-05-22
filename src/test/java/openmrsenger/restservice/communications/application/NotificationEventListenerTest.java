@@ -93,7 +93,7 @@ class NotificationEventListenerTest {
 
         when(logService.isAlreadySent(eventId)).thenReturn(false);
         when(provider.supports("TEST_PROVIDER")).thenReturn(true);
-        doThrow(new RuntimeException("Send failed")).when(provider).send(any(), any());
+        doThrow(new IllegalStateException("Send failed")).when(provider).send(any(), any());
 
         // Act
         listener.handleNotificationEvent(eventJson, 0);

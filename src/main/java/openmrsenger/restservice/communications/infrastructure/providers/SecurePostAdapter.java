@@ -101,7 +101,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                                 response.statusCode(),
                                                 response.body());
 
-                                throw new IllegalStateException(
+                                throw new MessagingProviderException(
                                                 "SecurePost API Error: " + response.body());
                         }
 

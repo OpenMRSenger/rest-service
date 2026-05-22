@@ -42,4 +42,17 @@ class ApiKeyWebhookAuthenticatorTest {
         when(request.getHeader("Authorization")).thenReturn(null);
         assertFalse(authenticator.authenticate(request));
     }
+
+    @Test
+    void authenticate_WithEmptyHeader_ShouldReturnFalse() {
+        when(request.getHeader("Authorization")).thenReturn("");
+        assertFalse(authenticator.authenticate(request));
+    }
+
+    @Test
+    void authenticate_WithMalformedBearer_ShouldReturnFalse() {
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + secretKey);
+        // Current implementation is exact match, so Bearer prefix should fail
+        assertFalse(authenticator.authenticate(request));
+    }
 }

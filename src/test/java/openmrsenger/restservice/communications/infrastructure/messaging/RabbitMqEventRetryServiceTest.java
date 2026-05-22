@@ -1,6 +1,6 @@
 package openmrsenger.restservice.communications.infrastructure.messaging;
 
-import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
+import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,18 +38,18 @@ class RabbitMqEventRetryServiceTest {
         String json = "{}";
         
         // Act
-        retryService.scheduleRetry(json, 0, new RuntimeException());
+        retryService.scheduleRetry(json, 0, new IllegalStateException());
 
         // Assert
         ArgumentCaptor<MessagePostProcessor> mppCaptor = ArgumentCaptor.forClass(MessagePostProcessor.class);
-        verify(rabbitTemplate).convertAndSend(eq(RabbitMqTopology.RETRY_QUEUE_10S), eq((Object)json), mppCaptor.capture());
+        verify(rabbitTemplate).convertAndSend(eq(RabbitMqConstants.RETRY_QUEUE_10S), eq((Object)json), mppCaptor.capture());
         
         Message message = mock(Message.class);
         MessageProperties props = new MessageProperties();
         when(message.getMessageProperties()).thenReturn(props);
         
         mppCaptor.getValue().postProcessMessage(message);
-        assertEquals(1, props.getHeaders().get(RabbitMqTopology.RETRY_STAGE_HEADER));
+        assertEquals(1, props.getHeaders().get(RabbitMqConstants.RETRY_STAGE_HEADER));
     }
 
     @Test
@@ -58,9 +58,9 @@ class RabbitMqEventRetryServiceTest {
         String json = "{}";
         
         // Act
-        retryService.scheduleRetry(json, 3, new RuntimeException());
+        retryService.scheduleRetry(json, 3, new IllegalStateException());
 
         // Assert
-        verify(rabbitTemplate).convertAndSend(eq(RabbitMqTopology.DLQ_QUEUE), eq((Object)json), any(MessagePostProcessor.class));
+        verify(rabbitTemplate).convertAndSend(eq(RabbitMqConstants.DLQ_QUEUE), eq((Object)json), any(MessagePostProcessor.class));
     }
 }

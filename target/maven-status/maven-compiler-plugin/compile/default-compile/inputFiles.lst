@@ -4,7 +4,6 @@ C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrs
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\domain\Appointment.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\domain\AppointmentRepository.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\messaging\RabbitMqOutboxRelay.java
-C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\messaging\RabbitMqTopology.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\persistence\AppointmentJpaEntity.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\persistence\AppointmentRepositoryAdapter.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\persistence\OutboxMessageJpaEntity.java
@@ -31,3 +30,4 @@ C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrs
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\RestServiceApplication.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\shared\event\DomainEvent.java
 C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\shared\event\NotificationRequestedEvent.java
+C:\Users\Ruben\Desktop\School\2.4\restservice\rest-service\src\main\java\openmrsenger\restservice\shared\messaging\RabbitMqConstants.java
