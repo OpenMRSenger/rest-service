@@ -1,7 +1,7 @@
 package openmrsenger.restservice.communications.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
+import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.slf4j.Logger;
@@ -32,11 +32,11 @@ public class NotificationEventListener {
         this.eventRetryService = eventRetryService;
     }
 
-    @RabbitListener(queues = RabbitMqTopology.MAIN_QUEUE)
+    @RabbitListener(queues = RabbitMqConstants.MAIN_QUEUE)
     @Transactional
     public void handleNotificationEvent(
             String eventJson,
-            @Header(name = RabbitMqTopology.RETRY_STAGE_HEADER, defaultValue = "0") int retryStage) {
+            @Header(name = RabbitMqConstants.RETRY_STAGE_HEADER, defaultValue = "0") int retryStage) {
 
         log.info("Received notification event (retry stage {}): {}", retryStage, eventJson);
         try {
@@ -56,7 +56,7 @@ public class NotificationEventListener {
             MessagingProviderPort provider = providers.stream()
                     .filter(p -> p.supports(event.getProviderId()))
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Unsupported provider: " + event.getProviderId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Unsupported provider: " + event.getProviderId()));
 
             // 3. Attempt actual sending
             provider.send(event, event.getConfigurationJson());
