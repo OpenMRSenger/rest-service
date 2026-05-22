@@ -9,13 +9,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
 public class RabbitMqOutboxRelay {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitMqOutboxRelay.class);
+    private static final ZoneId AMSTERDAM_ZONE = ZoneId.of("Europe/Amsterdam");
     private final SpringDataOutboxRepository outboxRepository;
     private final RabbitTemplate rabbitTemplate;
 
@@ -27,7 +29,7 @@ public class RabbitMqOutboxRelay {
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void processOutbox() {
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(AMSTERDAM_ZONE);
         List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalseAndScheduledForBefore(now);
         
         if (!pendingMessages.isEmpty()) {

@@ -1,7 +1,7 @@
 package openmrsenger.restservice.appointments.infrastructure.persistence;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,14 +15,14 @@ public class AppointmentJpaEntity {
     private String patientReference;
 
     @Column(name = "appointment_date", nullable = false)
-    private LocalDateTime date;
+    private OffsetDateTime date;
 
     @Column(name = "status", nullable = false)
     private String status;
 
     protected AppointmentJpaEntity() {}
 
-    public AppointmentJpaEntity(UUID id, String patientReference, LocalDateTime date, String status) {
+    public AppointmentJpaEntity(UUID id, String patientReference, OffsetDateTime date, String status) {
         this.id = id;
         this.patientReference = patientReference;
         this.date = date;
@@ -31,6 +31,6 @@ public class AppointmentJpaEntity {
 
     public UUID getId() { return id; }
     public String getPatientReference() { return patientReference; }
-    public LocalDateTime getDate() { return date; }
+    public OffsetDateTime getDate() { return date; }
     public String getStatus() { return status; }
 }

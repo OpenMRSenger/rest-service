@@ -34,7 +34,7 @@ public class RestServiceApplication {
   @Bean
   public ObjectMapper objectMapper() {
     ObjectMapper mapper = new ObjectMapper();
-    mapper.findAndRegisterModules(); // Registers JavaTimeModule for LocalDateTime etc.
+    mapper.findAndRegisterModules(); // Registers JavaTimeModule for OffsetDateTime etc.
     return mapper;
   }
 

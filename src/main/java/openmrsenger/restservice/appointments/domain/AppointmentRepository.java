@@ -1,6 +1,6 @@
 package openmrsenger.restservice.appointments.domain;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public interface AppointmentRepository {
     /**
@@ -16,5 +16,5 @@ public interface AppointmentRepository {
     /**
      * Saves a payload to the outbox with scheduling information.
      */
-    void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt);
+    void saveToOutbox(String topic, String payload, OffsetDateTime scheduledFor, OffsetDateTime expiresAt);
 }
