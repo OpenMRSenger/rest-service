@@ -1,6 +1,6 @@
 package openmrsenger.restservice.communications.infrastructure.messaging;
 
-import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
+import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.communications.application.EventRetryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,19 +28,19 @@ public class RabbitMqEventRetryService implements EventRetryService {
 
         rabbitTemplate.convertAndSend(routingKey, (Object) eventJson, message -> {
             MessageProperties props = message.getMessageProperties();
-            props.setHeader(RabbitMqTopology.RETRY_STAGE_HEADER, nextStage);
+            props.setHeader(RabbitMqConstants.RETRY_STAGE_HEADER, nextStage);
             return message;
         });
     }
 
     private String determineRoutingKey(int stage) {
         return switch (stage) {
-            case 1 -> RabbitMqTopology.RETRY_QUEUE_10S;
-            case 2 -> RabbitMqTopology.RETRY_QUEUE_60S;
-            case 3 -> RabbitMqTopology.RETRY_QUEUE_600S;
+            case 1 -> RabbitMqConstants.RETRY_QUEUE_10S;
+            case 2 -> RabbitMqConstants.RETRY_QUEUE_60S;
+            case 3 -> RabbitMqConstants.RETRY_QUEUE_600S;
             default -> {
                 log.warn("Max retry stages reached. Sending to DLQ.");
-                yield RabbitMqTopology.DLQ_QUEUE;
+                yield RabbitMqConstants.DLQ_QUEUE;
             }
         };
     }

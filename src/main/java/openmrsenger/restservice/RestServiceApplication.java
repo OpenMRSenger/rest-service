@@ -11,7 +11,8 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import openmrsenger.restservice.appointments.infrastructure.messaging.RabbitMqTopology;
+import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
+
 
 
 @SpringBootApplication
@@ -50,39 +51,39 @@ public class RestServiceApplication {
 
   @Bean
   public Queue appointmentEventsQueue() {
-    return QueueBuilder.durable(RabbitMqTopology.MAIN_QUEUE).build();
+    return QueueBuilder.durable(RabbitMqConstants.MAIN_QUEUE).build();
   }
 
   @Bean
   public Queue appointmentEventsRetry10sQueue() {
-    return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_10S)
+    return QueueBuilder.durable(RabbitMqConstants.RETRY_QUEUE_10S)
       .withArgument(RABBITMQ_MESSAGE_TTL, 10000)
       .withArgument(RABBITMQ_DEAD_LETTER_EXCHANGE, "")
-      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqTopology.MAIN_QUEUE)
+      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqConstants.MAIN_QUEUE)
         .build();
   }
 
   @Bean
   public Queue appointmentEventsRetry60sQueue() {
-    return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_60S)
+    return QueueBuilder.durable(RabbitMqConstants.RETRY_QUEUE_60S)
       .withArgument(RABBITMQ_MESSAGE_TTL, 60000)
       .withArgument(RABBITMQ_DEAD_LETTER_EXCHANGE, "")
-      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqTopology.MAIN_QUEUE)
+      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqConstants.MAIN_QUEUE)
         .build();
   }
 
   @Bean
   public Queue appointmentEventsRetry600sQueue() {
-    return QueueBuilder.durable(RabbitMqTopology.RETRY_QUEUE_600S)
+    return QueueBuilder.durable(RabbitMqConstants.RETRY_QUEUE_600S)
       .withArgument(RABBITMQ_MESSAGE_TTL, 600000)
       .withArgument(RABBITMQ_DEAD_LETTER_EXCHANGE, "")
-      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqTopology.MAIN_QUEUE)
+      .withArgument(RABBITMQ_DEAD_LETTER_ROUTING_KEY, RabbitMqConstants.MAIN_QUEUE)
         .build();
   }
 
   @Bean
   public Queue appointmentEventsDlqQueue() {
-    return QueueBuilder.durable(RabbitMqTopology.DLQ_QUEUE).build();
+    return QueueBuilder.durable(RabbitMqConstants.DLQ_QUEUE).build();
   }
 
 }

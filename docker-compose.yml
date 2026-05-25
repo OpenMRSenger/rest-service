@@ -31,6 +31,15 @@ services:
     depends_on:
       - fakecomworld
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
   rabbitmq:
     image: rabbitmq:4-management-alpine
     container_name: rabbitmq
