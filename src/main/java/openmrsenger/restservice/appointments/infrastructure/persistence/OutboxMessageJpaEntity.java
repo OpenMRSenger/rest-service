@@ -19,8 +19,7 @@ public class OutboxMessageJpaEntity {
     @Column(name = "topic", nullable = false)
     private String topic;
 
-    @Lob
-    @Column(name = "payload", nullable = false)
+    @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
     @Column(name = "processed", nullable = false)
