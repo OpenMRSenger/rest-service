@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 
 
+
 @SpringBootApplication
 @EnableScheduling
 public class RestServiceApplication {
