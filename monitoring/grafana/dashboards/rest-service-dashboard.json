@@ -101,7 +101,7 @@
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         {
-          "expr": "clamp_max(rabbitmq_connections, 1)",
+          "expr": "clamp_max(rabbitmq_connections{job=\"rabbitmq\"}, 1)",
           "refId": "A"
         }
       ],
