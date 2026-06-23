@@ -97,53 +97,67 @@ public class AsyncFlowAdapter extends AbstractRestMessagingAdapter<AsyncFlowConf
         int maxAttempts = 60; // 60 attempts * 5s = 300s (5 minutes) timeout
 
         while (attempts < maxAttempts) {
-            try {
-                log.info("Polling {} status for trackingId={}, attempt={}", getProviderId(), trackingId, attempts + 1);
-
-                ResponseEntity<String> response = restTemplate.exchange(
-                        statusUrl,
-                        HttpMethod.GET,
-                        requestEntity,
-                        String.class);
-
-                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                    AsyncFlowStatusResponse statusResponse = objectMapper.readValue(response.getBody(), AsyncFlowStatusResponse.class);
-                    String status = statusResponse.status();
-                    log.info("TrackingId={} status: {}", trackingId, status);
-
-                    if ("Completed".equalsIgnoreCase(status)) {
-                        log.info("Notification successfully processed for trackingId={}", trackingId);
-                        return;
-                    } else if ("Failed".equalsIgnoreCase(status)) {
-                        String errorDetails = statusResponse.errorDetails();
-                        log.error("Notification failed for trackingId={} | details: {}", trackingId, errorDetails);
-                        throw new MessagingProviderException(getProviderId() + " message delivery failed: " + errorDetails);
-                    }
-                } else {
-                    throw new MessagingProviderException(getProviderId() + " API Error status check: " + response.getBody());
-                }
-
-            } catch (HttpStatusCodeException exception) {
-                log.error("Error while polling status. Status={}, Body={}", exception.getStatusCode(), exception.getResponseBodyAsString());
-                throw new MessagingProviderException(getProviderId() + " API status error: " + exception.getResponseBodyAsString(), exception);
-            } catch (JsonProcessingException exception) {
-                log.error("JSON parse error while parsing status response: {}", exception.getMessage());
-                throw new MessagingProviderException(getProviderId() + " status parse error: " + exception.getMessage(), exception);
-            } catch (ResourceAccessException exception) {
-                log.error("Network error while polling status: {}", exception.getMessage());
-                throw new MessagingProviderException(getProviderId() + " status network error: " + exception.getMessage(), exception);
+            log.info("Polling {} status for trackingId={}, attempt={}", getProviderId(), trackingId, attempts + 1);
+            boolean isCompleted = fetchAndVerifyStatus(statusUrl, requestEntity);
+            if (isCompleted) {
+                return;
             }
-
             attempts++;
-            try {
-                Thread.sleep(pollIntervalMs);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new MessagingProviderException(getProviderId() + " polling interrupted", e);
-            }
+            sleep(pollIntervalMs);
         }
 
         throw new MessagingProviderException(getProviderId() + " delivery verification timed out after " + (maxAttempts * pollIntervalMs / 1000) + " seconds");
+    }
+
+    private boolean fetchAndVerifyStatus(String statusUrl, HttpEntity<Void> requestEntity) {
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    statusUrl,
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new MessagingProviderException(getProviderId() + " API Error status check: " + response.getBody());
+            }
+
+            AsyncFlowStatusResponse statusResponse = objectMapper.readValue(response.getBody(), AsyncFlowStatusResponse.class);
+            return handleStatusResponse(statusResponse);
+
+        } catch (HttpStatusCodeException exception) {
+            log.error("Error while polling status. Status={}, Body={}", exception.getStatusCode(), exception.getResponseBodyAsString());
+            throw new MessagingProviderException(getProviderId() + " API status error: " + exception.getResponseBodyAsString(), exception);
+        } catch (JsonProcessingException exception) {
+            log.error("JSON parse error while parsing status response: {}", exception.getMessage());
+            throw new MessagingProviderException(getProviderId() + " status parse error: " + exception.getMessage(), exception);
+        } catch (ResourceAccessException exception) {
+            log.error("Network error while polling status: {}", exception.getMessage());
+            throw new MessagingProviderException(getProviderId() + " status network error: " + exception.getMessage(), exception);
+        }
+    }
+
+    private boolean handleStatusResponse(AsyncFlowStatusResponse statusResponse) {
+        String status = statusResponse.status();
+        log.info("TrackingId={} status: {}", statusResponse.trackingId(), status);
+
+        if ("Completed".equalsIgnoreCase(status)) {
+            log.info("Notification successfully processed for trackingId={}", statusResponse.trackingId());
+            return true;
+        } else if ("Failed".equalsIgnoreCase(status)) {
+            String errorDetails = statusResponse.errorDetails();
+            log.error("Notification failed for trackingId={} | details: {}", statusResponse.trackingId(), errorDetails);
+            throw new MessagingProviderException(getProviderId() + " message delivery failed: " + errorDetails);
+        }
+        return false;
+    }
+
+    private void sleep(long durationMs) {
+        try {
+            Thread.sleep(durationMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new MessagingProviderException(getProviderId() + " polling interrupted", e);
+        }
     }
 
     private record AsyncFlowResponse(boolean accepted, String trackingId, String message, String submittedAt) {}
