@@ -8,7 +8,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,7 +69,7 @@ class AppointmentRepositoryAdapterTest {
         UUID eventId = UUID.randomUUID();
         String oldPayload = "old";
         String newPayload = "new";
-        Instant now = Instant.now();
+        OffsetDateTime now = OffsetDateTime.now();
         OutboxMessageJpaEntity existing = new OutboxMessageJpaEntity("topic", oldPayload, now, null, eventId);
         
         when(outboxRepository.findByEventIdAndProcessedFalseAndCancelledFalse(eventId)).thenReturn(Optional.of(existing));
@@ -87,7 +87,7 @@ class AppointmentRepositoryAdapterTest {
         // Arrange
         UUID eventId = UUID.randomUUID();
         String payload = "same";
-        Instant now = Instant.now();
+        OffsetDateTime now = OffsetDateTime.now();
         OutboxMessageJpaEntity existing = new OutboxMessageJpaEntity("topic", payload, now, null, eventId);
         
         when(outboxRepository.findByEventIdAndProcessedFalseAndCancelledFalse(eventId)).thenReturn(Optional.of(existing));

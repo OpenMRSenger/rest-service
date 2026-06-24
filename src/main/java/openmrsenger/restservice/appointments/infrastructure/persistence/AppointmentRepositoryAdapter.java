@@ -4,7 +4,7 @@ import openmrsenger.restservice.appointments.domain.Appointment;
 import openmrsenger.restservice.appointments.domain.AppointmentRepository;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,11 +45,11 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
     @Override
     public void saveToOutbox(String topic, String payload) {
-        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, Instant.now(), null, null));
+        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, OffsetDateTime.now(), null, null));
     }
 
     @Override
-    public void saveToOutbox(String topic, String payload, Instant scheduledFor, Instant expiresAt, UUID eventId) {
+    public void saveToOutbox(String topic, String payload, OffsetDateTime scheduledFor, OffsetDateTime expiresAt, UUID eventId) {
         Optional<OutboxMessageJpaEntity> pending = eventId != null
                 ? outboxRepository.findByEventIdAndProcessedFalseAndCancelledFalse(eventId)
                 : Optional.empty();
@@ -61,7 +61,7 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
                     || !Objects.equals(expiresAt, existing.getExpiresAt());
             if (changed) {
                 existing.setPayload(payload);
-                existing.setScheduledFor(scheduledFor != null ? scheduledFor : Instant.now());
+                existing.setScheduledFor(scheduledFor != null ? scheduledFor : OffsetDateTime.now());
                 existing.setExpiresAt(expiresAt);
                 outboxRepository.save(existing);
             }
