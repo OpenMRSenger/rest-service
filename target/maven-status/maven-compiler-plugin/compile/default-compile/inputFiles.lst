@@ -14,6 +14,7 @@ E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\res
 E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\web\AppointmentWebhookController.java
 E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\web\fhir\FhirAppointmentDto.java
 E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\web\fhir\FhirAppointmentValidator.java
+E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\web\fhir\FhirValidationRule.java
 E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\web\fhir\OperationOutcomeDto.java
 E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\appointments\infrastructure\web\WebhookAuthenticator.java
 E:\School\Avans\Jaar 2_ICT\2.4\repos\rest-service\src\main\java\openmrsenger\restservice\communications\application\EventRetryService.java
