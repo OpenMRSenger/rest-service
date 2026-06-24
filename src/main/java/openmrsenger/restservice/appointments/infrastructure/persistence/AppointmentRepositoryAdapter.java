@@ -5,6 +5,7 @@ import openmrsenger.restservice.appointments.domain.AppointmentRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,7 +46,7 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
     @Override
     public void saveToOutbox(String topic, String payload) {
-        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, OffsetDateTime.now(), null, null));
+        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, OffsetDateTime.now(ZoneOffset.UTC), null, null));
     }
 
     @Override
@@ -61,7 +62,7 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
                     || !Objects.equals(expiresAt, existing.getExpiresAt());
             if (changed) {
                 existing.setPayload(payload);
-                existing.setScheduledFor(scheduledFor != null ? scheduledFor : OffsetDateTime.now());
+                existing.setScheduledFor(scheduledFor != null ? scheduledFor : OffsetDateTime.now(ZoneOffset.UTC));
                 existing.setExpiresAt(expiresAt);
                 outboxRepository.save(existing);
             }

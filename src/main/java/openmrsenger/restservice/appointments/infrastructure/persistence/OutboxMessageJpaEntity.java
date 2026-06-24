@@ -32,7 +32,7 @@ public class OutboxMessageJpaEntity {
     private OffsetDateTime createdAt = OffsetDateTime.now(ZoneOffset.UTC);
 
     @Column(name = "scheduled_for", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private OffsetDateTime scheduledFor = OffsetDateTime.now();
+    private OffsetDateTime scheduledFor = OffsetDateTime.now(ZoneOffset.UTC);
 
     @Column(name = "expires_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime expiresAt;
@@ -40,7 +40,7 @@ public class OutboxMessageJpaEntity {
     protected OutboxMessageJpaEntity() {}
 
     public OutboxMessageJpaEntity(String topic, String payload) {
-        this(topic, payload, OffsetDateTime.now(), null, null);
+        this(topic, payload, OffsetDateTime.now(ZoneOffset.UTC), null, null);
     }
 
     public OutboxMessageJpaEntity(String topic, String payload, OffsetDateTime scheduledFor, OffsetDateTime expiresAt) {
@@ -50,7 +50,7 @@ public class OutboxMessageJpaEntity {
     public OutboxMessageJpaEntity(String topic, String payload, OffsetDateTime scheduledFor, OffsetDateTime expiresAt, UUID eventId) {
         this.topic = topic;
         this.payload = payload;
-        this.scheduledFor = scheduledFor != null ? scheduledFor : OffsetDateTime.now();
+        this.scheduledFor = scheduledFor != null ? scheduledFor : OffsetDateTime.now(ZoneOffset.UTC);
         this.expiresAt = expiresAt;
         this.eventId = eventId;
     }
