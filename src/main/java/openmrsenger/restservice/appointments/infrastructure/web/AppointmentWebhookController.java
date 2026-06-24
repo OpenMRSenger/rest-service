@@ -67,4 +67,4 @@ public class AppointmentWebhookController {
         OperationOutcomeDto successOutcome = new OperationOutcomeDto("information", "informational", "Appointment webhook received and added to outbox.");
         return ResponseEntity.ok(successOutcome);
     }
-}
+}
