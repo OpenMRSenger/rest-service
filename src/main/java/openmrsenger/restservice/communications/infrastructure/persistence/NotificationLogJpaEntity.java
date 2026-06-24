@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Entity
@@ -27,7 +28,7 @@ public class NotificationLogJpaEntity {
     public NotificationLogJpaEntity(UUID eventId) {
         this.eventId = eventId;
         this.status = "PENDING";
-        this.createdAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
+        this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public UUID getEventId() {
@@ -72,13 +73,13 @@ public class NotificationLogJpaEntity {
 
     public void markAsSent() {
         this.status = "SENT";
-        this.processedAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
+        this.processedAt = LocalDateTime.now(ZoneOffset.UTC);
         this.errorMessage = null;
     }
 
     public void markAsFailed(String error) {
         this.status = "FAILED";
-        this.processedAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
+        this.processedAt = LocalDateTime.now(ZoneOffset.UTC);
         this.errorMessage = error;
     }
 }
