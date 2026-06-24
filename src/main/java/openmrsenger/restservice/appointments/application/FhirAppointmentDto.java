@@ -69,32 +69,27 @@ public class FhirAppointmentDto {
     }
 
     public String getPatientUuid() {
-        if (participant == null) return null;
-        for (ParticipantDto p : participant) {
-            if (p.getActor() != null && p.getActor().getReference() != null) {
-                String ref = p.getActor().getReference();
-                if (ref.startsWith("Patient/")) {
-                    return ref.substring("Patient/".length());
-                }
-            }
+        ParticipantDto patient = findPatientParticipant();
+        if (patient != null && patient.getActor() != null && patient.getActor().getReference() != null) {
+            return patient.getActor().getReference().substring("Patient/".length());
         }
         return null;
     }
 
     public String getPatientName() {
-        if (participant == null) return null;
-        for (ParticipantDto p : participant) {
-            if (p.getActor() != null && p.getActor().getReference() != null && p.getActor().getReference().startsWith("Patient/")) {
-                return p.getActor().getDisplay();
-            }
+        ParticipantDto patient = findPatientParticipant();
+        if (patient != null && patient.getActor() != null) {
+            return patient.getActor().getDisplay();
         }
         return null;
     }
 
     public String getArtsName() {
-        if (participant == null) return null;
+        if (participant == null) {
+            return null;
+        }
         for (ParticipantDto p : participant) {
-            if (p.getActor() != null && p.getActor().getReference() != null && p.getActor().getReference().startsWith("Practitioner/")) {
+            if (p != null && p.getActor() != null && p.getActor().getReference() != null && p.getActor().getReference().startsWith("Practitioner/")) {
                 return p.getActor().getDisplay();
             }
         }
@@ -102,28 +97,51 @@ public class FhirAppointmentDto {
     }
 
     public String getPhoneNumber() {
-        if (participant == null) return null;
+        ParticipantDto patient = findPatientParticipant();
+        if (patient == null) {
+            return null;
+        }
+        return extractPhoneFromParticipant(patient);
+    }
+
+    private ParticipantDto findPatientParticipant() {
+        if (participant == null) {
+            return null;
+        }
         for (ParticipantDto p : participant) {
-            if (p.getActor() != null && p.getActor().getReference() != null && p.getActor().getReference().startsWith("Patient/")) {
-                // Check participant telecom
-                if (p.getTelecom() != null) {
-                    for (TelecomDto t : p.getTelecom()) {
-                        if (t.getValue() != null && ("phone".equalsIgnoreCase(t.getSystem()) || "sms".equalsIgnoreCase(t.getSystem()) || t.getSystem() == null)) {
-                            return t.getValue();
-                        }
-                    }
-                }
-                // Check actor telecom
-                if (p.getActor().getTelecom() != null) {
-                    for (TelecomDto t : p.getActor().getTelecom()) {
-                        if (t.getValue() != null && ("phone".equalsIgnoreCase(t.getSystem()) || "sms".equalsIgnoreCase(t.getSystem()) || t.getSystem() == null)) {
-                            return t.getValue();
-                        }
-                    }
-                }
+            if (p != null && p.getActor() != null && p.getActor().getReference() != null && p.getActor().getReference().startsWith("Patient/")) {
+                return p;
             }
         }
         return null;
+    }
+
+    private String extractPhoneFromParticipant(ParticipantDto p) {
+        String phone = extractPhoneFromTelecom(p.getTelecom());
+        if (phone != null) {
+            return phone;
+        }
+        if (p.getActor() != null) {
+            return extractPhoneFromTelecom(p.getActor().getTelecom());
+        }
+        return null;
+    }
+
+    private String extractPhoneFromTelecom(List<TelecomDto> telecomList) {
+        if (telecomList == null) {
+            return null;
+        }
+        for (TelecomDto t : telecomList) {
+            if (t != null && t.getValue() != null && isPhoneOrSms(t)) {
+                return t.getValue();
+            }
+        }
+        return null;
+    }
+
+    private boolean isPhoneOrSms(TelecomDto t) {
+        String system = t.getSystem();
+        return system == null || "phone".equalsIgnoreCase(system) || "sms".equalsIgnoreCase(system);
     }
 
     public OffsetDateTime getStartDateTime() {
