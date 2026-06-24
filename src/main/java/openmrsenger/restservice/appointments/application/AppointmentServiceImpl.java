@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -56,11 +56,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private void handleSchedule(FhirAppointmentDto dto, String messagingProvider, String hospitalId, String providerConfigJson) {
-        LocalDateTime appointmentTimeUtc = dto.getStartDateTimeUtc();
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+    private void handleSchedule(OpenMrsWebhookDto dto, String messagingProvider, String hospitalId, String providerConfigJson) {
+        OffsetDateTime appointmentTime = dto.getStartDateTime();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        if (appointmentTimeUtc == null || appointmentTimeUtc.isBefore(now)) {
+        if (appointmentTime == null || appointmentTime.isBefore(now)) {
             log.warn("Appointment is in the past or missing start time. Skipping reminders. Appointment ID: {}", dto.getAppointmentUuid());
             return;
         }
@@ -68,8 +68,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         UUID eventId24h = deterministicId(dto.getAppointmentUuid(), "24h");
         boolean sent24h = appointmentRepository.wasNotificationSent(eventId24h);
 
-        scheduleReminder(dto, messagingProvider, hospitalId, providerConfigJson, appointmentTimeUtc.minusHours(24), "24h");
-        scheduleReminder(dto, messagingProvider, hospitalId, providerConfigJson, appointmentTimeUtc.minusHours(1), "1h");
+        scheduleReminder(dto, messagingProvider, hospitalId, providerConfigJson, appointmentTime.minusHours(24), "24h");
+        scheduleReminder(dto, messagingProvider, hospitalId, providerConfigJson, appointmentTime.minusHours(1), "1h");
 
         if (sent24h) {
             String message = "UPDATED: Your appointment is now scheduled for " + dto.getStartDateTime() + " at " + hospitalId + ".";
@@ -78,8 +78,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private void scheduleReminder(FhirAppointmentDto dto, String messagingProvider, String hospitalId, String providerConfigJson, LocalDateTime scheduledFor, String suffix) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+    private void scheduleReminder(OpenMrsWebhookDto dto, String messagingProvider, String hospitalId, String providerConfigJson, OffsetDateTime scheduledFor, String suffix) {
+        OffsetDateTime now = OffsetDateTime.now(scheduledFor.getOffset());
         if (scheduledFor.isBefore(now)) {
             log.info("Reminder {} for appointment {} is in the past ({}). Skipping.", suffix, dto.getAppointmentUuid(), scheduledFor);
             return;
@@ -105,8 +105,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Scheduled {} reminder for appointment {} at {}", suffix, dto.getAppointmentUuid(), scheduledFor);
     }
 
-    private void sendImmediately(FhirAppointmentDto dto, String messagingProvider, String hospitalId, String providerConfigJson, String messageText) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+    private void sendImmediately(OpenMrsWebhookDto dto, String messagingProvider, String hospitalId, String providerConfigJson, String messageText) {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         NotificationRequestedEvent event = new NotificationRequestedEvent(
                 null,
                 null,
@@ -121,7 +121,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         saveEvent(event, now, now.plusHours(1), null);
     }
 
-    private void saveEvent(NotificationRequestedEvent event, LocalDateTime scheduledFor, LocalDateTime expiresAt, UUID eventId) {
+    private void saveEvent(NotificationRequestedEvent event, OffsetDateTime scheduledFor, OffsetDateTime expiresAt, UUID eventId) {
         try {
             appointmentRepository.saveToOutbox(TOPIC, objectMapper.writeValueAsString(event), scheduledFor, expiresAt, eventId);
         } catch (JsonProcessingException e) {

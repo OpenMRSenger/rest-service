@@ -5,11 +5,14 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import openmrsenger.restservice.appointments.application.AppointmentService;
 import openmrsenger.restservice.appointments.application.FhirAppointmentDto;
 import openmrsenger.restservice.appointments.application.FhirAppointmentValidator;
+import openmrsenger.restservice.appointments.application.OpenMrsWebhookDto;
+import openmrsenger.restservice.appointments.infrastructure.web.fhir.FhirAppointmentValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -18,6 +21,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -44,6 +49,7 @@ class AppointmentWebhookControllerTest {
     @InjectMocks
     private AppointmentWebhookController controller;
 
+    @Spy
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @BeforeEach
@@ -69,7 +75,7 @@ class AppointmentWebhookControllerTest {
                 .header("x-messaging-provider", "SWIFTSEND")
                 .header("x-hospital-name", "HOSP-001")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                .content(payload))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
                 .andExpect(jsonPath("$.issue[0].severity").value("information"))
@@ -117,8 +123,190 @@ class AppointmentWebhookControllerTest {
                 .header("x-messaging-provider", "SWIFTSEND")
                 .header("x-hospital-name", "HOSP-001")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                .content(payload))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Unauthorized: Invalid or missing bearer token."));
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("fatal"))
+                .andExpect(jsonPath("$.issue[0].code").value("security"))
+                .andExpect(jsonPath("$.issue[0].details.text").value("Unauthorized: Invalid or missing bearer token."));
+    }
+
+    @Test
+    void receiveAppointment_WithInvalidResourceType_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        String payload = """
+                {
+                  "resourceType": "Encounter",
+                  "id": "app-123",
+                  "status": "booked",
+                  "start": "2026-06-25T14:30:00Z",
+                  "participant": [
+                    {
+                      "actor": { "reference": "Patient/patient-123" }
+                    }
+                  ]
+                }
+                """;
+        when(authenticator.authenticate(any())).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/webhooks/appointments")
+                .header("Authorization", "valid-token")
+                .header("x-messaging-provider", "SWIFTSEND")
+                .header("x-hospital-name", "HOSP-001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("error"))
+                .andExpect(jsonPath("$.issue[0].code").value("invalid"))
+                .andExpect(jsonPath("$.issue[0].details.text").value("resourceType must be 'Appointment'"))
+                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.resourceType"));
+    }
+
+    @Test
+    void receiveAppointment_WithInvalidStatus_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        String payload = """
+                {
+                  "resourceType": "Appointment",
+                  "id": "app-123",
+                  "status": "not-a-valid-status",
+                  "start": "2026-06-25T14:30:00Z",
+                  "participant": [
+                    {
+                      "actor": { "reference": "Patient/patient-123" }
+                    }
+                  ]
+                }
+                """;
+        when(authenticator.authenticate(any())).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/webhooks/appointments")
+                .header("Authorization", "valid-token")
+                .header("x-messaging-provider", "SWIFTSEND")
+                .header("x-hospital-name", "HOSP-001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("error"))
+                .andExpect(jsonPath("$.issue[0].code").value("invalid"))
+                .andExpect(jsonPath("$.issue[0].details.text").value(containsString("Invalid status value")))
+                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.status"));
+    }
+
+    @Test
+    void receiveAppointment_WithInvalidStartDateTime_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        String payload = """
+                {
+                  "resourceType": "Appointment",
+                  "id": "app-123",
+                  "status": "booked",
+                  "start": "2026-06-25 14:30:00",
+                  "participant": [
+                    {
+                      "actor": { "reference": "Patient/patient-123" }
+                    }
+                  ]
+                }
+                """;
+        when(authenticator.authenticate(any())).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/webhooks/appointments")
+                .header("Authorization", "valid-token")
+                .header("x-messaging-provider", "SWIFTSEND")
+                .header("x-hospital-name", "HOSP-001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("error"))
+                .andExpect(jsonPath("$.issue[0].code").value("invalid"))
+                .andExpect(jsonPath("$.issue[0].details.text").value(containsString("Invalid start date-time format")))
+                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.start"));
+    }
+
+    @Test
+    void receiveAppointment_WithMissingParticipant_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        String payload = """
+                {
+                  "resourceType": "Appointment",
+                  "id": "app-123",
+                  "status": "booked",
+                  "start": "2026-06-25T14:30:00Z",
+                  "participant": []
+                }
+                """;
+        when(authenticator.authenticate(any())).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/webhooks/appointments")
+                .header("Authorization", "valid-token")
+                .header("x-messaging-provider", "SWIFTSEND")
+                .header("x-hospital-name", "HOSP-001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("error"))
+                .andExpect(jsonPath("$.issue[0].code").value("required"))
+                .andExpect(jsonPath("$.issue[0].details.text").value("participant list is required and must not be empty"))
+                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.participant"));
+    }
+
+    @Test
+    void receiveAppointment_WithMalformedJson_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        String payload = "{ malformed json ";
+        when(authenticator.authenticate(any())).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/webhooks/appointments")
+                .header("Authorization", "valid-token")
+                .header("x-messaging-provider", "SWIFTSEND")
+                .header("x-hospital-name", "HOSP-001")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("fatal"))
+                .andExpect(jsonPath("$.issue[0].code").value("structure"))
+                .andExpect(jsonPath("$.issue[0].details.text").value(containsString("Malformed JSON payload")));
+    }
+
+    private String getValidFhirPayload() {
+        return """
+                {
+                  "resourceType": "Appointment",
+                  "id": "app-123",
+                  "status": "booked",
+                  "start": "2026-06-25T14:30:00Z",
+                  "participant": [
+                    {
+                      "actor": {
+                        "reference": "Patient/patient-123",
+                        "display": "John Doe"
+                      },
+                      "telecom": [
+                        {
+                          "system": "phone",
+                          "value": "+31612345678"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """;
     }
 }

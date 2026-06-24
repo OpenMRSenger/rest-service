@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,6 +55,8 @@ class AppointmentServiceImplTest {
         ActorDto actor = new ActorDto("Patient/" + UUID.randomUUID().toString(), "John Doe", List.of(telecom));
         ParticipantDto participant = new ParticipantDto(actor, "accepted");
         dto.setParticipant(List.of(participant));
+        // Fix: Zet tijd ruim in de toekomst (2 dagen) om "past reminder" logs te voorkomen
+        dto.setStartDateTime(OffsetDateTime.now(ZoneOffset.UTC).plusDays(2));
 
         String provider = "SWIFTSEND";
         String hospitalId = "HOSP-001";
