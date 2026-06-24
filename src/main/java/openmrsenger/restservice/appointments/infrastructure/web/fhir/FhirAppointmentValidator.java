@@ -1,5 +1,8 @@
 package openmrsenger.restservice.appointments.infrastructure.web.fhir;
 
+import openmrsenger.restservice.appointments.application.FhirAppointmentDto;
+import openmrsenger.restservice.appointments.application.OperationOutcomeDto;
+import openmrsenger.restservice.appointments.application.ParticipantDto;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
@@ -37,8 +40,6 @@ public class FhirAppointmentValidator {
         return issues;
     }
 
-
-
     private static class ResourceTypeRule implements FhirValidationRule {
         @Override
         public void validate(FhirAppointmentDto dto, List<OperationOutcomeDto.IssueDto> issues) {
@@ -46,15 +47,13 @@ public class FhirAppointmentValidator {
                 issues.add(new OperationOutcomeDto.IssueDto(
                         SEVERITY_ERROR,
                         CODE_REQUIRED,
-                        "resourceType is required",
-                        List.of("Appointment.resourceType")
+                        "resourceType is required"
                 ));
             } else if (!"Appointment".equals(dto.getResourceType())) {
                 issues.add(new OperationOutcomeDto.IssueDto(
                         SEVERITY_ERROR,
                         CODE_INVALID,
-                        "resourceType must be 'Appointment'",
-                        List.of("Appointment.resourceType")
+                        "resourceType must be 'Appointment'"
                 ));
             }
         }
@@ -67,15 +66,13 @@ public class FhirAppointmentValidator {
                 issues.add(new OperationOutcomeDto.IssueDto(
                         SEVERITY_ERROR,
                         CODE_REQUIRED,
-                        "status is required",
-                        List.of("Appointment.status")
+                        "status is required"
                 ));
             } else if (!VALID_STATUSES.contains(dto.getStatus())) {
                 issues.add(new OperationOutcomeDto.IssueDto(
                         SEVERITY_ERROR,
                         CODE_INVALID,
-                        "Invalid status value: '" + dto.getStatus() + "'",
-                        List.of("Appointment.status")
+                        "Invalid status value: '" + dto.getStatus() + "'"
                 ));
             }
         }
@@ -88,8 +85,7 @@ public class FhirAppointmentValidator {
                 issues.add(new OperationOutcomeDto.IssueDto(
                         SEVERITY_ERROR,
                         CODE_REQUIRED,
-                        "start date-time is required",
-                        List.of("Appointment.start")
+                        "start date-time is required"
                 ));
             } else {
                 try {
@@ -98,8 +94,7 @@ public class FhirAppointmentValidator {
                     issues.add(new OperationOutcomeDto.IssueDto(
                             SEVERITY_ERROR,
                             CODE_INVALID,
-                            "Invalid start date-time format: '" + dto.getStart() + "'",
-                            List.of("Appointment.start")
+                            "Invalid start date-time format: '" + dto.getStart() + "'"
                     ));
                 }
             }
@@ -113,18 +108,16 @@ public class FhirAppointmentValidator {
                 issues.add(new OperationOutcomeDto.IssueDto(
                         SEVERITY_ERROR,
                         CODE_REQUIRED,
-                        "participant list is required and must not be empty",
-                        List.of("Appointment.participant")
+                        "participant list is required and must not be empty"
                 ));
             } else {
                 int i = 0;
-                for (FhirAppointmentDto.ParticipantDto p : dto.getParticipant()) {
+                for (ParticipantDto p : dto.getParticipant()) {
                     if (p == null || p.getActor() == null) {
                         issues.add(new OperationOutcomeDto.IssueDto(
                                 SEVERITY_ERROR,
                                 CODE_REQUIRED,
-                                "actor is required for participant at index " + i,
-                                List.of("Appointment.participant[" + i + "].actor")
+                                "actor is required for participant at index " + i
                         ));
                     }
                     i++;

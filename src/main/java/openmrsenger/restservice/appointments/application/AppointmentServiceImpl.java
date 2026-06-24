@@ -56,7 +56,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private void handleSchedule(OpenMrsWebhookDto dto, String messagingProvider, String hospitalId, String providerConfigJson) {
+    private void handleSchedule(FhirAppointmentDto dto, String messagingProvider, String hospitalId, String providerConfigJson) {
         OffsetDateTime appointmentTime = dto.getStartDateTime();
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
@@ -78,7 +78,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private void scheduleReminder(OpenMrsWebhookDto dto, String messagingProvider, String hospitalId, String providerConfigJson, OffsetDateTime scheduledFor, String suffix) {
+    private void scheduleReminder(FhirAppointmentDto dto, String messagingProvider, String hospitalId, String providerConfigJson, OffsetDateTime scheduledFor, String suffix) {
         OffsetDateTime now = OffsetDateTime.now(scheduledFor.getOffset());
         if (scheduledFor.isBefore(now)) {
             log.info("Reminder {} for appointment {} is in the past ({}). Skipping.", suffix, dto.getAppointmentUuid(), scheduledFor);
@@ -105,7 +105,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Scheduled {} reminder for appointment {} at {}", suffix, dto.getAppointmentUuid(), scheduledFor);
     }
 
-    private void sendImmediately(OpenMrsWebhookDto dto, String messagingProvider, String hospitalId, String providerConfigJson, String messageText) {
+    private void sendImmediately(FhirAppointmentDto dto, String messagingProvider, String hospitalId, String providerConfigJson, String messageText) {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         NotificationRequestedEvent event = new NotificationRequestedEvent(
                 null,
