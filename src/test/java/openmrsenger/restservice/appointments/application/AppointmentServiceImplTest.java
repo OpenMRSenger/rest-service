@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,7 +33,6 @@ class AppointmentServiceImplTest {
     @Mock
     private AppointmentRepository appointmentRepository;
 
-    // Fix: Registreer JavaTimeModule voor Instant/OffsetDateTime ondersteuning
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private AppointmentServiceImpl appointmentService;
 
@@ -45,13 +45,12 @@ class AppointmentServiceImplTest {
     @DisplayName("Meldt een nieuwe afspraak aan en verifieert opslag in Outbox")
     void processWebhook_ShouldSaveToOutbox() throws Exception {
         // Arrange
-        OpenMrsWebhookDto dto = new OpenMrsWebhookDto();
-        dto.setAppointmentUuid(UUID.randomUUID().toString());
-        dto.setPatientUuid(UUID.randomUUID().toString());
-        dto.setPhoneNumber("+31612345678");
-        dto.setStatus("Scheduled");
-        // Fix: Zet tijd ruim in de toekomst (2 dagen) om "past reminder" logs te voorkomen
-        dto.setStartDateTime(OffsetDateTime.now(ZoneOffset.UTC).plusDays(2));
+        String appUuid = UUID.randomUUID().toString();
+        String patientUuid = UUID.randomUUID().toString();
+        String phone = "+31612345678";
+        String status = "booked";
+
+        FhirAppointmentDto dto = createValidFhirDto(appUuid, patientUuid, phone, status);
 
         String provider = "SWIFTSEND";
         String hospitalId = "HOSP-001";
@@ -73,5 +72,28 @@ class AppointmentServiceImplTest {
         verify(appointmentRepository, atLeastOnce()).saveToOutbox(any(), payloadCaptor.capture(), any(), any(), any());
         
         assertTrue(payloadCaptor.getValue().contains(provider), "De outbox payload moet de geconfigureerde provider bevatten");
+    }
+
+    private FhirAppointmentDto createValidFhirDto(String appUuid, String patientUuid, String phone, String status) {
+        FhirAppointmentDto dto = new FhirAppointmentDto();
+        dto.setResourceType("Appointment");
+        dto.setId(appUuid);
+        dto.setStatus(status);
+        dto.setStart(OffsetDateTime.now(ZoneOffset.UTC).plusDays(2).toString());
+
+        ParticipantDto participant = new ParticipantDto();
+        ActorDto actor = new ActorDto();
+        actor.setReference("Patient/" + patientUuid);
+        actor.setDisplay("John Doe");
+        
+        TelecomDto telecom = new TelecomDto();
+        telecom.setSystem("phone");
+        telecom.setValue(phone);
+        
+        actor.setTelecom(List.of(telecom));
+        participant.setActor(actor);
+        
+        dto.setParticipant(List.of(participant));
+        return dto;
     }
 }

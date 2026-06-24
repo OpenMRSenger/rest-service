@@ -37,6 +37,9 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
     protected abstract String getEndpointPath();
     protected abstract HttpHeaders buildHeaders(T config);
     protected abstract Object buildPayload(NotificationRequestedEvent event, T config);
+    protected void processResponse(ResponseEntity<String> response, T config) {
+        // Hook for subclasses to post-process responses (e.g., polling for asynchronous APIs)
+    }
 
     @Override
     public boolean supports(String providerId) {
@@ -76,6 +79,8 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
 
             log.info("{} response: status={} | body={}",
                     getProviderId(), response.getStatusCode(), response.getBody());
+
+            processResponse(response, config);
 
         } catch (JsonProcessingException exception) {
 

@@ -3,7 +3,7 @@ package openmrsenger.restservice.appointments.infrastructure.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import openmrsenger.restservice.appointments.application.AppointmentService;
-import openmrsenger.restservice.appointments.application.OpenMrsWebhookDto;
+import openmrsenger.restservice.appointments.application.FhirAppointmentDto;
 import openmrsenger.restservice.appointments.infrastructure.web.fhir.FhirAppointmentValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,9 +69,9 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("information"))
                 .andExpect(jsonPath("$.issue[0].code").value("informational"))
-                .andExpect(jsonPath("$.issue[0].details.text").value("Appointment webhook received and added to outbox."));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value("Appointment webhook received and added to outbox."));
 
-        verify(appointmentService).processWebhook(any(OpenMrsWebhookDto.class), eq("SWIFTSEND"), eq("HOSP-001"), any());
+        verify(appointmentService).processWebhook(any(FhirAppointmentDto.class), eq("SWIFTSEND"), eq("HOSP-001"), any());
     }
 
     @Test
@@ -92,7 +92,7 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("fatal"))
                 .andExpect(jsonPath("$.issue[0].code").value("security"))
-                .andExpect(jsonPath("$.issue[0].details.text").value("Unauthorized: Invalid or missing bearer token."));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value("Unauthorized: Invalid or missing bearer token."));
     }
 
     @Test
@@ -125,8 +125,7 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("error"))
                 .andExpect(jsonPath("$.issue[0].code").value("invalid"))
-                .andExpect(jsonPath("$.issue[0].details.text").value("resourceType must be 'Appointment'"))
-                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.resourceType"));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value("resourceType must be 'Appointment'"));
     }
 
     @Test
@@ -159,8 +158,7 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("error"))
                 .andExpect(jsonPath("$.issue[0].code").value("invalid"))
-                .andExpect(jsonPath("$.issue[0].details.text").value(containsString("Invalid status value")))
-                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.status"));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value(containsString("Invalid status value")));
     }
 
     @Test
@@ -193,8 +191,7 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("error"))
                 .andExpect(jsonPath("$.issue[0].code").value("invalid"))
-                .andExpect(jsonPath("$.issue[0].details.text").value(containsString("Invalid start date-time format")))
-                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.start"));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value(containsString("Invalid start date-time format")));
     }
 
     @Test
@@ -223,8 +220,7 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("error"))
                 .andExpect(jsonPath("$.issue[0].code").value("required"))
-                .andExpect(jsonPath("$.issue[0].details.text").value("participant list is required and must not be empty"))
-                .andExpect(jsonPath("$.issue[0].expression[0]").value("Appointment.participant"));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value("participant list is required and must not be empty"));
     }
 
     @Test
@@ -245,7 +241,7 @@ class AppointmentWebhookControllerTest {
                 .andExpect(jsonPath("$.issue", hasSize(1)))
                 .andExpect(jsonPath("$.issue[0].severity").value("fatal"))
                 .andExpect(jsonPath("$.issue[0].code").value("structure"))
-                .andExpect(jsonPath("$.issue[0].details.text").value(containsString("Malformed JSON payload")));
+                .andExpect(jsonPath("$.issue[0].diagnostics").value(containsString("Malformed JSON payload")));
     }
 
     private String getValidFhirPayload() {

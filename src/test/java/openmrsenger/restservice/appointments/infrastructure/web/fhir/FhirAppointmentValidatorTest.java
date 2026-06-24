@@ -1,5 +1,9 @@
 package openmrsenger.restservice.appointments.infrastructure.web.fhir;
 
+import openmrsenger.restservice.appointments.application.ActorDto;
+import openmrsenger.restservice.appointments.application.FhirAppointmentDto;
+import openmrsenger.restservice.appointments.application.OperationOutcomeDto;
+import openmrsenger.restservice.appointments.application.ParticipantDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +41,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("required", issues.get(0).getCode());
-        assertEquals("resourceType is required", issues.get(0).getDetails().getText());
+        assertEquals("resourceType is required", issues.get(0).getDiagnostics());
     }
 
     @Test
@@ -50,7 +54,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("invalid", issues.get(0).getCode());
-        assertEquals("resourceType must be 'Appointment'", issues.get(0).getDetails().getText());
+        assertEquals("resourceType must be 'Appointment'", issues.get(0).getDiagnostics());
     }
 
     @Test
@@ -63,7 +67,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("required", issues.get(0).getCode());
-        assertEquals("status is required", issues.get(0).getDetails().getText());
+        assertEquals("status is required", issues.get(0).getDiagnostics());
     }
 
     @Test
@@ -76,7 +80,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("invalid", issues.get(0).getCode());
-        assertTrue(issues.get(0).getDetails().getText().contains("Invalid status value"));
+        assertTrue(issues.get(0).getDiagnostics().contains("Invalid status value"));
     }
 
     @Test
@@ -89,7 +93,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("required", issues.get(0).getCode());
-        assertEquals("start date-time is required", issues.get(0).getDetails().getText());
+        assertEquals("start date-time is required", issues.get(0).getDiagnostics());
     }
 
     @Test
@@ -102,7 +106,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("invalid", issues.get(0).getCode());
-        assertTrue(issues.get(0).getDetails().getText().contains("Invalid start date-time format"));
+        assertTrue(issues.get(0).getDiagnostics().contains("Invalid start date-time format"));
     }
 
     @Test
@@ -115,7 +119,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("required", issues.get(0).getCode());
-        assertEquals("participant list is required and must not be empty", issues.get(0).getDetails().getText());
+        assertEquals("participant list is required and must not be empty", issues.get(0).getDiagnostics());
     }
 
     @Test
@@ -128,7 +132,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("required", issues.get(0).getCode());
-        assertEquals("participant list is required and must not be empty", issues.get(0).getDetails().getText());
+        assertEquals("participant list is required and must not be empty", issues.get(0).getDiagnostics());
     }
 
     @Test
@@ -141,7 +145,7 @@ class FhirAppointmentValidatorTest {
         assertEquals(1, issues.size());
         assertEquals("error", issues.get(0).getSeverity());
         assertEquals("required", issues.get(0).getCode());
-        assertEquals("actor is required for participant at index 0", issues.get(0).getDetails().getText());
+        assertEquals("actor is required for participant at index 0", issues.get(0).getDiagnostics());
     }
 
     private FhirAppointmentDto createValidDto() {
@@ -151,13 +155,13 @@ class FhirAppointmentValidatorTest {
         dto.setStatus("booked");
         dto.setStart("2026-06-24T12:00:00Z");
 
-        FhirAppointmentDto.ParticipantDto participant = new FhirAppointmentDto.ParticipantDto();
-        FhirAppointmentDto.ActorDto actor = new FhirAppointmentDto.ActorDto();
+        ParticipantDto participant = new ParticipantDto();
+        ActorDto actor = new ActorDto();
         actor.setReference("Patient/patient-uuid");
         actor.setDisplay("John Doe");
         participant.setActor(actor);
 
-        List<FhirAppointmentDto.ParticipantDto> participants = new ArrayList<>();
+        List<ParticipantDto> participants = new ArrayList<>();
         participants.add(participant);
         dto.setParticipant(participants);
 
