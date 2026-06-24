@@ -150,10 +150,8 @@ public class AppointmentWebhookController {
             }
         } else if (ref.startsWith("#")) {
             processContainedReference(fhirDto, ref.substring(1), display, dto);
-        } else if (ref.startsWith("Practitioner/")) {
-            if (display != null) {
-                dto.setArtsName(display);
-            }
+        } else if (ref.startsWith("Practitioner/") && display != null) {
+            dto.setArtsName(display);
         }
     }
 
