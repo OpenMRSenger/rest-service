@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,7 +51,7 @@ class AppointmentServiceImplTest {
         dto.setPhoneNumber("+31612345678");
         dto.setStatus("Scheduled");
         // Fix: Zet tijd ruim in de toekomst (2 dagen) om "past reminder" logs te voorkomen
-        dto.setStartDateTime(OffsetDateTime.now().plusDays(2));
+        dto.setStartDateTime(OffsetDateTime.now(ZoneOffset.UTC).plusDays(2));
 
         String provider = "SWIFTSEND";
         String hospitalId = "HOSP-001";
