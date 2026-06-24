@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import openmrsenger.restservice.appointments.application.AppointmentService;
 import openmrsenger.restservice.appointments.application.OpenMrsWebhookDto;
+import openmrsenger.restservice.appointments.infrastructure.web.fhir.FhirAppointmentValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +23,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,6 +36,9 @@ class AppointmentWebhookControllerTest {
 
     @Mock
     private WebhookAuthenticator authenticator;
+
+    @Spy
+    private FhirAppointmentValidator validator = new FhirAppointmentValidator();
 
     @InjectMocks
     private AppointmentWebhookController controller;
@@ -85,7 +88,11 @@ class AppointmentWebhookControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Unauthorized: Invalid or missing bearer token."));
+                .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+                .andExpect(jsonPath("$.issue", hasSize(1)))
+                .andExpect(jsonPath("$.issue[0].severity").value("fatal"))
+                .andExpect(jsonPath("$.issue[0].code").value("security"))
+                .andExpect(jsonPath("$.issue[0].details.text").value("Unauthorized: Invalid or missing bearer token."));
     }
 
     @Test
@@ -266,4 +273,3 @@ class AppointmentWebhookControllerTest {
                 """;
     }
 }
-

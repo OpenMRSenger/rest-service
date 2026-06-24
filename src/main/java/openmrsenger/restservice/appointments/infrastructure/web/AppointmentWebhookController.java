@@ -30,18 +30,20 @@ public class AppointmentWebhookController {
     private final AppointmentService appointmentService;
     private final WebhookAuthenticator authenticator;
     private final ObjectMapper objectMapper;
-    private final FhirAppointmentValidator validator = new FhirAppointmentValidator();
+    private final FhirAppointmentValidator validator;
 
     public AppointmentWebhookController(AppointmentService appointmentService,
                                          WebhookAuthenticator authenticator,
-                                         ObjectMapper objectMapper) {
+                                         ObjectMapper objectMapper,
+                                         FhirAppointmentValidator validator) {
         this.appointmentService = appointmentService;
         this.authenticator = authenticator;
         this.objectMapper = objectMapper;
+        this.validator = validator;
     }
 
     @PostMapping(produces = "application/json")
-    public ResponseEntity<?> receiveAppointment(
+    public ResponseEntity<OperationOutcomeDto> receiveAppointment(
             @RequestBody String rawPayload,
             @RequestHeader("x-messaging-provider") String messagingProvider,
             @RequestHeader("x-hospital-name") String hospitalName,
@@ -50,8 +52,10 @@ public class AppointmentWebhookController {
 
         if (!authenticator.authenticate(request)) {
             log.warn("Unauthorized webhook attempt from IP: {}", request.getRemoteAddr());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Unauthorized: Invalid or missing bearer token.");
+            OperationOutcomeDto authOutcome = new OperationOutcomeDto(List.of(
+                    new OperationOutcomeDto.IssueDto("fatal", "security", "Unauthorized: Invalid or missing bearer token.")
+            ));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(authOutcome);
         }
 
         FhirAppointmentDto fhirDto;
@@ -109,60 +113,73 @@ public class AppointmentWebhookController {
         }
         dto.setComments(fhirDto.getDescription());
 
-        String patientUuid = null;
-        String patientName = null;
-        String phoneNumber = null;
-        String artsName = null;
-
-        if (fhirDto.getParticipant() != null) {
-            for (FhirAppointmentDto.ParticipantDto p : fhirDto.getParticipant()) {
-                if (p.getActor() != null) {
-                    String ref = p.getActor().getReference();
-                    String display = p.getActor().getDisplay();
-                    if (ref != null) {
-                        if (ref.startsWith("Patient/")) {
-                            patientUuid = ref.substring("Patient/".length());
-                            if (display != null) {
-                                patientName = display;
-                            }
-                            phoneNumber = getPhoneFromTelecom(p.getTelecom());
-                            if (phoneNumber == null) {
-                                phoneNumber = getPhoneFromTelecom(p.getActor().getTelecom());
-                            }
-                        } else if (ref.startsWith("#")) {
-                            String containedId = ref.substring(1);
-                            FhirAppointmentDto.ContainedResourceDto contained = findContained(fhirDto.getContained(), containedId);
-                            if (contained != null && "Patient".equalsIgnoreCase(contained.getResourceType())) {
-                                patientUuid = contained.getId();
-                                if (display != null) {
-                                    patientName = display;
-                                } else if (contained.getDisplay() != null) {
-                                    patientName = contained.getDisplay();
-                                }
-                                phoneNumber = getPhoneFromTelecom(contained.getTelecom());
-                            } else if (contained != null && "Practitioner".equalsIgnoreCase(contained.getResourceType())) {
-                                if (display != null) {
-                                    artsName = display;
-                                } else if (contained.getDisplay() != null) {
-                                    artsName = contained.getDisplay();
-                                }
-                            }
-                        } else if (ref.startsWith("Practitioner/")) {
-                            if (display != null) {
-                                artsName = display;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        dto.setPatientUuid(patientUuid);
-        dto.setPatientName(patientName);
-        dto.setArtsName(artsName);
-        dto.setPhoneNumber(phoneNumber);
+        extractPatientAndPractitionerInfo(fhirDto, dto);
 
         return dto;
+    }
+
+    private void extractPatientAndPractitionerInfo(FhirAppointmentDto fhirDto, OpenMrsWebhookDto dto) {
+        if (fhirDto.getParticipant() == null) {
+            return;
+        }
+        for (FhirAppointmentDto.ParticipantDto p : fhirDto.getParticipant()) {
+            if (p.getActor() == null) {
+                continue;
+            }
+            processParticipant(fhirDto, p, dto);
+        }
+    }
+
+    private void processParticipant(FhirAppointmentDto fhirDto, FhirAppointmentDto.ParticipantDto p, OpenMrsWebhookDto dto) {
+        String ref = p.getActor().getReference();
+        String display = p.getActor().getDisplay();
+        if (ref == null) {
+            return;
+        }
+        if (ref.startsWith("Patient/")) {
+            dto.setPatientUuid(ref.substring("Patient/".length()));
+            if (display != null) {
+                dto.setPatientName(display);
+            }
+            String phone = getPhoneFromTelecom(p.getTelecom());
+            if (phone == null) {
+                phone = getPhoneFromTelecom(p.getActor().getTelecom());
+            }
+            if (phone != null) {
+                dto.setPhoneNumber(phone);
+            }
+        } else if (ref.startsWith("#")) {
+            processContainedReference(fhirDto, ref.substring(1), display, dto);
+        } else if (ref.startsWith("Practitioner/")) {
+            if (display != null) {
+                dto.setArtsName(display);
+            }
+        }
+    }
+
+    private void processContainedReference(FhirAppointmentDto fhirDto, String containedId, String display, OpenMrsWebhookDto dto) {
+        FhirAppointmentDto.ContainedResourceDto contained = findContained(fhirDto.getContained(), containedId);
+        if (contained == null) {
+            return;
+        }
+        if ("Patient".equalsIgnoreCase(contained.getResourceType())) {
+            dto.setPatientUuid(contained.getId());
+            if (display != null) {
+                dto.setPatientName(display);
+            } else if (contained.getDisplay() != null) {
+                dto.setPatientName(contained.getDisplay());
+            }
+            String phone = getPhoneFromTelecom(contained.getTelecom());
+            if (phone != null) {
+                dto.setPhoneNumber(phone);
+            }
+        } else if ("Practitioner".equalsIgnoreCase(contained.getResourceType())) {
+            if (display != null) {
+                dto.setArtsName(display);
+            } else if (contained.getDisplay() != null) {
+                dto.setArtsName(contained.getDisplay());
+            }
+        }
     }
 
     private String getPhoneFromTelecom(List<FhirAppointmentDto.TelecomDto> telecomList) {

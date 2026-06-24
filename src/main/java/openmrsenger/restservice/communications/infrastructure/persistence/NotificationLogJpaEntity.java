@@ -27,7 +27,7 @@ public class NotificationLogJpaEntity {
     public NotificationLogJpaEntity(UUID eventId) {
         this.eventId = eventId;
         this.status = "PENDING";
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
     }
 
     public UUID getEventId() {
@@ -72,13 +72,13 @@ public class NotificationLogJpaEntity {
 
     public void markAsSent() {
         this.status = "SENT";
-        this.processedAt = LocalDateTime.now();
+        this.processedAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
         this.errorMessage = null;
     }
 
     public void markAsFailed(String error) {
         this.status = "FAILED";
-        this.processedAt = LocalDateTime.now();
+        this.processedAt = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
         this.errorMessage = error;
     }
 }
