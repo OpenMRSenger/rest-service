@@ -1,8 +1,7 @@
 package openmrsenger.restservice.appointments.infrastructure.persistence;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -29,28 +28,28 @@ public class OutboxMessageJpaEntity {
     private boolean cancelled = false;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
+    private Instant createdAt = Instant.now();
 
     @Column(name = "scheduled_for", nullable = false)
-    private LocalDateTime scheduledFor = LocalDateTime.now();
+    private Instant scheduledFor = Instant.now();
 
     @Column(name = "expires_at")
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
     protected OutboxMessageJpaEntity() {}
 
     public OutboxMessageJpaEntity(String topic, String payload) {
-        this(topic, payload, LocalDateTime.now(), null, null);
+        this(topic, payload, Instant.now(), null, null);
     }
 
-    public OutboxMessageJpaEntity(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt) {
+    public OutboxMessageJpaEntity(String topic, String payload, Instant scheduledFor, Instant expiresAt) {
         this(topic, payload, scheduledFor, expiresAt, null);
     }
 
-    public OutboxMessageJpaEntity(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt, UUID eventId) {
+    public OutboxMessageJpaEntity(String topic, String payload, Instant scheduledFor, Instant expiresAt, UUID eventId) {
         this.topic = topic;
         this.payload = payload;
-        this.scheduledFor = scheduledFor != null ? scheduledFor : LocalDateTime.now();
+        this.scheduledFor = scheduledFor != null ? scheduledFor : Instant.now();
         this.expiresAt = expiresAt;
         this.eventId = eventId;
     }
@@ -64,8 +63,8 @@ public class OutboxMessageJpaEntity {
     public void setProcessed(boolean processed) { this.processed = processed; }
     public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
     public void setPayload(String payload) { this.payload = payload; }
-    public void setScheduledFor(LocalDateTime scheduledFor) { this.scheduledFor = scheduledFor; }
-    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
-    public LocalDateTime getScheduledFor() { return scheduledFor; }
-    public LocalDateTime getExpiresAt() { return expiresAt; }
+    public void setScheduledFor(Instant scheduledFor) { this.scheduledFor = scheduledFor; }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
+    public Instant getScheduledFor() { return scheduledFor; }
+    public Instant getExpiresAt() { return expiresAt; }
 }

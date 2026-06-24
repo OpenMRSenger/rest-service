@@ -1,6 +1,6 @@
 package openmrsenger.restservice.appointments.domain;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,9 +14,10 @@ public interface AppointmentRepository {
 
     void saveToOutbox(String topic, String payload);
 
-    void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt, UUID eventId);
+    void saveToOutbox(String topic, String payload, Instant scheduledFor, Instant expiresAt, UUID eventId);
 
     void cancelOutboxMessages(List<UUID> eventIds);
 
     boolean wasNotificationSent(UUID eventId);
 }
+

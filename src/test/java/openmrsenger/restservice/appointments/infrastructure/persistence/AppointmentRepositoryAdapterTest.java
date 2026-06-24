@@ -8,12 +8,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -69,12 +69,13 @@ class AppointmentRepositoryAdapterTest {
         UUID eventId = UUID.randomUUID();
         String oldPayload = "old";
         String newPayload = "new";
-        OutboxMessageJpaEntity existing = new OutboxMessageJpaEntity("topic", oldPayload, LocalDateTime.now(), null, eventId);
+        Instant now = Instant.now();
+        OutboxMessageJpaEntity existing = new OutboxMessageJpaEntity("topic", oldPayload, now, null, eventId);
         
         when(outboxRepository.findByEventIdAndProcessedFalseAndCancelledFalse(eventId)).thenReturn(Optional.of(existing));
 
         // Act
-        adapter.saveToOutbox("topic", newPayload, LocalDateTime.now(), null, eventId);
+        adapter.saveToOutbox("topic", newPayload, now, null, eventId);
 
         // Assert
         assertEquals(newPayload, existing.getPayload());
@@ -86,12 +87,13 @@ class AppointmentRepositoryAdapterTest {
         // Arrange
         UUID eventId = UUID.randomUUID();
         String payload = "same";
-        OutboxMessageJpaEntity existing = new OutboxMessageJpaEntity("topic", payload, LocalDateTime.now(), null, eventId);
+        Instant now = Instant.now();
+        OutboxMessageJpaEntity existing = new OutboxMessageJpaEntity("topic", payload, now, null, eventId);
         
         when(outboxRepository.findByEventIdAndProcessedFalseAndCancelledFalse(eventId)).thenReturn(Optional.of(existing));
 
         // Act
-        adapter.saveToOutbox("topic", payload, LocalDateTime.now(), null, eventId);
+        adapter.saveToOutbox("topic", payload, now, null, eventId);
 
         // Assert
         verify(outboxRepository, never()).save(any());

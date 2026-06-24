@@ -4,8 +4,9 @@ import openmrsenger.restservice.appointments.domain.Appointment;
 import openmrsenger.restservice.appointments.domain.AppointmentRepository;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,20 +45,23 @@ public class AppointmentRepositoryAdapter implements AppointmentRepository {
 
     @Override
     public void saveToOutbox(String topic, String payload) {
-        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, LocalDateTime.now(), null, null));
+        outboxRepository.save(new OutboxMessageJpaEntity(topic, payload, Instant.now(), null, null));
     }
 
     @Override
-    public void saveToOutbox(String topic, String payload, LocalDateTime scheduledFor, LocalDateTime expiresAt, UUID eventId) {
+    public void saveToOutbox(String topic, String payload, Instant scheduledFor, Instant expiresAt, UUID eventId) {
         Optional<OutboxMessageJpaEntity> pending = eventId != null
                 ? outboxRepository.findByEventIdAndProcessedFalseAndCancelledFalse(eventId)
                 : Optional.empty();
 
         if (pending.isPresent()) {
             OutboxMessageJpaEntity existing = pending.get();
-            if (!existing.getPayload().equals(payload)) {
+            boolean changed = !existing.getPayload().equals(payload)
+                    || !Objects.equals(scheduledFor, existing.getScheduledFor())
+                    || !Objects.equals(expiresAt, existing.getExpiresAt());
+            if (changed) {
                 existing.setPayload(payload);
-                existing.setScheduledFor(scheduledFor != null ? scheduledFor : LocalDateTime.now());
+                existing.setScheduledFor(scheduledFor != null ? scheduledFor : Instant.now());
                 existing.setExpiresAt(expiresAt);
                 outboxRepository.save(existing);
             }

@@ -9,8 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.List;
 
 @Component
@@ -28,7 +27,7 @@ public class RabbitMqOutboxRelay {
     @Scheduled(fixedDelay = 5000) 
     @Transactional
     public void processOutbox() {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        Instant now = Instant.now();
         List<OutboxMessageJpaEntity> pendingMessages = outboxRepository.findByProcessedFalseAndCancelledFalseAndScheduledForBefore(now);
         
         if (!pendingMessages.isEmpty()) {

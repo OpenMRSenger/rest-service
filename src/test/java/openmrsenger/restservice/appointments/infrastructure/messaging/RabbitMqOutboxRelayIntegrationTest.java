@@ -12,8 +12,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,7 +55,7 @@ class RabbitMqOutboxRelayIntegrationTest {
         // Arrange
         String topic = "test.topic";
         String payload = "{\"event\":\"test\"}";
-        LocalDateTime scheduledFor = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1);
+        Instant scheduledFor = Instant.now().minus(1, ChronoUnit.MINUTES);
         
         // Gebruik de publieke constructor van de entiteit
         OutboxMessageJpaEntity message = new OutboxMessageJpaEntity(
