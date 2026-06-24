@@ -1,42 +1,42 @@
 [
   {
     "provider": "SWIFTSEND",
-    "total": 11830,
-    "success": 11830,
+    "total": 11880,
+    "success": 11880,
     "failed": 0,
     "errRate": "0.00",
-    "avg": "30.43",
-    "p95": "64.06",
-    "p99": "115.86"
+    "avg": "35.30",
+    "p95": "98.86",
+    "p99": "302.43"
   },
   {
     "provider": "ASYNCFLOW",
-    "total": 11976,
-    "success": 11976,
+    "total": 12095,
+    "success": 12095,
     "failed": 0,
     "errRate": "0.00",
-    "avg": "30.42",
-    "p95": "63.53",
-    "p99": "110.65"
+    "avg": "34.61",
+    "p95": "86.27",
+    "p99": "305.46"
   },
   {
     "provider": "SECUREPOST",
-    "total": 12008,
-    "success": 12008,
+    "total": 11786,
+    "success": 11786,
     "failed": 0,
     "errRate": "0.00",
-    "avg": "30.31",
-    "p95": "63.51",
-    "p99": "109.72"
+    "avg": "34.71",
+    "p95": "88.52",
+    "p99": "299.71"
   },
   {
     "provider": "LEGACYLINK",
-    "total": 11886,
-    "success": 11886,
+    "total": 11875,
+    "success": 11875,
     "failed": 0,
     "errRate": "0.00",
-    "avg": "29.90",
-    "p95": "62.24",
-    "p99": "106.07"
+    "avg": "34.37",
+    "p95": "87.59",
+    "p99": "293.31"
   }
 ]

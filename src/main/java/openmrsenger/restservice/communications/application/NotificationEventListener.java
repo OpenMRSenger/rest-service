@@ -1,6 +1,7 @@
 package openmrsenger.restservice.communications.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
@@ -21,15 +22,18 @@ public class NotificationEventListener {
     private final ObjectMapper objectMapper;
     private final NotificationLogService notificationLogService;
     private final EventRetryService eventRetryService;
+    private final MeterRegistry meterRegistry;
 
     public NotificationEventListener(List<MessagingProviderPort> providers,
                                      ObjectMapper objectMapper,
                                      NotificationLogService notificationLogService,
-                                     EventRetryService eventRetryService) {
+                                     EventRetryService eventRetryService,
+                                     MeterRegistry meterRegistry) {
         this.providers = providers;
         this.objectMapper = objectMapper;
         this.notificationLogService = notificationLogService;
         this.eventRetryService = eventRetryService;
+        this.meterRegistry = meterRegistry;
     }
 
     @RabbitListener(queues = RabbitMqConstants.MAIN_QUEUE)
@@ -39,8 +43,10 @@ public class NotificationEventListener {
             @Header(name = RabbitMqConstants.RETRY_STAGE_HEADER, defaultValue = "0") int retryStage) {
 
         log.info("Received notification event (retry stage {}): {}", retryStage, eventJson);
+        String providerId = "unknown";
         try {
             NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
+            providerId = event.getProviderId();
 
             // 1. Idempotency check using the new log service
             if (notificationLogService.isAlreadySent(event.getEventId())) {
@@ -64,11 +70,12 @@ public class NotificationEventListener {
             // 4. Mark as SENT after successful sending
             notificationLogService.logSuccess(event.getEventId());
             log.info("Successfully sent notification for patient {}", event.getPatientId());
+            meterRegistry.counter("notification_send", "provider", providerId, "outcome", "success").increment();
 
         } catch (Exception e) {
-            log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.", 
+            log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.",
                     retryStage, e.getMessage());
-            
+
             // 5. Try to log the failure if we have the event ID
             try {
                 NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
@@ -76,7 +83,8 @@ public class NotificationEventListener {
             } catch (Exception jsonEx) {
                 log.error("Could not log failure status because JSON is invalid", jsonEx);
             }
-            
+
+            meterRegistry.counter("notification_send", "provider", providerId, "outcome", "failure").increment();
             eventRetryService.scheduleRetry(eventJson, retryStage, e);
         }
     }
