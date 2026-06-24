@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +32,6 @@ class AppointmentServiceImplTest {
     @Mock
     private AppointmentRepository appointmentRepository;
 
-    // Fix: Registreer JavaTimeModule voor Instant/OffsetDateTime ondersteuning
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private AppointmentServiceImpl appointmentService;
 
@@ -44,13 +44,16 @@ class AppointmentServiceImplTest {
     @DisplayName("Meldt een nieuwe afspraak aan en verifieert opslag in Outbox")
     void processWebhook_ShouldSaveToOutbox() throws Exception {
         // Arrange
-        OpenMrsWebhookDto dto = new OpenMrsWebhookDto();
-        dto.setAppointmentUuid(UUID.randomUUID().toString());
-        dto.setPatientUuid(UUID.randomUUID().toString());
-        dto.setPhoneNumber("+31612345678");
+        FhirAppointmentDto dto = new FhirAppointmentDto();
+        dto.setId(UUID.randomUUID().toString());
+        dto.setResourceType("Appointment");
         dto.setStatus("Scheduled");
-        // Fix: Zet tijd ruim in de toekomst (2 dagen) om "past reminder" logs te voorkomen
-        dto.setStartDateTime(OffsetDateTime.now().plusDays(2));
+        dto.setStart(OffsetDateTime.now().plusDays(2).toString());
+
+        TelecomDto telecom = new TelecomDto("phone", "+31612345678");
+        ActorDto actor = new ActorDto("Patient/" + UUID.randomUUID().toString(), "John Doe", List.of(telecom));
+        ParticipantDto participant = new ParticipantDto(actor, "accepted");
+        dto.setParticipant(List.of(participant));
 
         String provider = "SWIFTSEND";
         String hospitalId = "HOSP-001";
