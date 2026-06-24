@@ -38,7 +38,7 @@ class AppointmentRepositoryAdapterTest {
     void saveAppointment_ShouldMapToJpaEntity() {
         // Arrange
         UUID id = UUID.randomUUID();
-        LocalDateTime date = LocalDateTime.now();
+        LocalDateTime date = LocalDateTime.now(ZoneOffset.UTC);
         Appointment appointment = new Appointment(id, "PAT-1", date, "Scheduled");
 
         // Act
