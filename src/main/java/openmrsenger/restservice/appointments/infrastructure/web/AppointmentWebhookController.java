@@ -79,8 +79,8 @@ public class AppointmentWebhookController {
             return ResponseEntity.badRequest().body(errorOutcome);
         }
 
-        log.info("Received appointment webhook for patient: {}, provider: {}, messaging provider: {}, hospital: {}",
-                fhirDto.getPatientUuid(), fhirDto.getArtsName(), messagingProvider, hospitalName);
+        log.info("Received appointment webhook for patient: {}, messaging provider: {}, hospital: {}",
+                fhirDto.getPatientUuid(), messagingProvider, hospitalName);
 
         appointmentService.processWebhook(fhirDto, messagingProvider, hospitalName, providerConfigJson);
 
