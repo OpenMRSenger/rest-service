@@ -65,7 +65,7 @@ public class FhirAppointmentDto {
     // Adaptor methods to retrieve fields previously supplied by OpenMrsWebhookDto:
 
     public String getAppointmentUuid() {
-        return id;
+        return getId();
     }
 
     public String getPatientUuid() {
