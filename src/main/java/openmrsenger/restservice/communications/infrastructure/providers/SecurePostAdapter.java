@@ -19,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLParameters;
 
 @Component
 public class SecurePostAdapter implements MessagingProviderPort {
@@ -32,7 +33,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
         private String accessToken;
         private Instant expiryTime;
 
-        private final HttpClient httpClient = HttpClient.newHttpClient();
+        private final HttpClient httpClient;
 
         private final String studentGroup;
 
@@ -43,6 +44,12 @@ public class SecurePostAdapter implements MessagingProviderPort {
                 this.objectMapper = objectMapper;
                 this.baseApiUrl = baseApiUrl;
                 this.studentGroup = studentGroup;
+
+                SSLParameters sslParameters = new SSLParameters();
+                sslParameters.setProtocols(new String[]{"TLSv1.3"});
+                this.httpClient = HttpClient.newBuilder()
+                                .sslParameters(sslParameters)
+                                .build();
         }
 
         @Override
