@@ -19,6 +19,8 @@ public class OutboxMessageJpaEntity {
     @Column(name = "topic", nullable = false)
     private String topic;
 
+    // AES-256-GCM ciphertext (see PayloadEncryptionService) — callers must encrypt before
+    // constructing this entity; this column must never receive plaintext patient PII.
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
