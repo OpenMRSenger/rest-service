@@ -51,6 +51,11 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"
+
+    volumes:
+      - ./monitoring/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - ./monitoring/rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/10-metrics.conf:ro
 
     restart: unless-stopped
 
@@ -72,7 +77,7 @@ services:
       - "8888:8081"
 
     environment:
-      - BASE_API_URL=http://host.docker.internal:1337
+      - BASE_API_URL=http://fakecomworld:8080
       - STUDENT_GROUP=${STUDENT_GROUP}
 
       - SWIFT_SEND_API_KEY=${SWIFT_SEND_API_KEY}
