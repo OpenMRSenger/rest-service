@@ -3,6 +3,7 @@ package openmrsenger.restservice.shared.logging;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,8 +23,8 @@ public class LogSanitizer {
 
     private static final Pattern JSON_RECIPIENT_PATTERN = Pattern.compile("(\"(?:recipient|destination|PhoneNumber|Recipients)\"\\s*:\\s*\")([^\"]+)(\")", Pattern.CASE_INSENSITIVE);
     private static final Pattern JSON_BODY_PATTERN = Pattern.compile("(\"(?:body|content|Content)\"\\s*:\\s*\")([^\"]+)(\")", Pattern.CASE_INSENSITIVE);
-    private static final Pattern XML_PHONE_PATTERN = Pattern.compile("(<PhoneNumber>)(.*?)(</PhoneNumber>)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern XML_TEXT_PATTERN = Pattern.compile("(<MessageText>)(.*?)(</MessageText>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern XML_PHONE_PATTERN = Pattern.compile("(<PhoneNumber>)([^<]+)(</PhoneNumber>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern XML_TEXT_PATTERN = Pattern.compile("(<MessageText>)([^<]+)(</MessageText>)", Pattern.CASE_INSENSITIVE);
 
     public static String maskPhone(String phone) {
         if (phone == null) {
@@ -63,7 +64,7 @@ public class LogSanitizer {
         Map<String, String> redacted = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             String key = entry.getKey();
-            if (SENSITIVE_KEYS.contains(key.toLowerCase())) {
+            if (SENSITIVE_KEYS.contains(key.toLowerCase(Locale.ROOT))) {
                 redacted.put(key, "[REDACTED]");
             } else {
                 redacted.put(key, entry.getValue());
@@ -128,7 +129,8 @@ public class LogSanitizer {
         Matcher jsonPhoneMatcher = JSON_RECIPIENT_PATTERN.matcher(result);
         StringBuilder sb = new StringBuilder();
         while (jsonPhoneMatcher.find()) {
-            jsonPhoneMatcher.appendReplacement(sb, jsonPhoneMatcher.group(1) + maskPhone(jsonPhoneMatcher.group(2)) + jsonPhoneMatcher.group(3));
+            String replacement = jsonPhoneMatcher.group(1) + maskPhone(jsonPhoneMatcher.group(2)) + jsonPhoneMatcher.group(3);
+            jsonPhoneMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
         jsonPhoneMatcher.appendTail(sb);
         result = sb.toString();
@@ -137,7 +139,8 @@ public class LogSanitizer {
         Matcher jsonBodyMatcher = JSON_BODY_PATTERN.matcher(result);
         sb = new StringBuilder();
         while (jsonBodyMatcher.find()) {
-            jsonBodyMatcher.appendReplacement(sb, jsonBodyMatcher.group(1) + "[MASKED]" + jsonBodyMatcher.group(3));
+            String replacement = jsonBodyMatcher.group(1) + "[MASKED]" + jsonBodyMatcher.group(3);
+            jsonBodyMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
         jsonBodyMatcher.appendTail(sb);
         result = sb.toString();
@@ -146,7 +149,8 @@ public class LogSanitizer {
         Matcher xmlPhoneMatcher = XML_PHONE_PATTERN.matcher(result);
         sb = new StringBuilder();
         while (xmlPhoneMatcher.find()) {
-            xmlPhoneMatcher.appendReplacement(sb, xmlPhoneMatcher.group(1) + maskPhone(xmlPhoneMatcher.group(2)) + xmlPhoneMatcher.group(3));
+            String replacement = xmlPhoneMatcher.group(1) + maskPhone(xmlPhoneMatcher.group(2)) + xmlPhoneMatcher.group(3);
+            xmlPhoneMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
         xmlPhoneMatcher.appendTail(sb);
         result = sb.toString();
@@ -155,7 +159,8 @@ public class LogSanitizer {
         Matcher xmlTextMatcher = XML_TEXT_PATTERN.matcher(result);
         sb = new StringBuilder();
         while (xmlTextMatcher.find()) {
-            xmlTextMatcher.appendReplacement(sb, xmlTextMatcher.group(1) + "[MASKED]" + xmlTextMatcher.group(3));
+            String replacement = xmlTextMatcher.group(1) + "[MASKED]" + xmlTextMatcher.group(3);
+            xmlTextMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
         xmlTextMatcher.appendTail(sb);
         result = sb.toString();
