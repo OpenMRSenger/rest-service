@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.communications.infrastructure.config.ProviderConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
+import openmrsenger.restservice.shared.logging.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -52,7 +53,7 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
         log.info("Starting {} notification for patientId={}, phone={}",
                 getProviderId(),
                 event.getPatientId(),
-                event.getPhoneNumber());
+                LogSanitizer.maskPhone(event.getPhoneNumber()));
 
         if (configurationJson == null || configurationJson.isBlank()) {
             throw new MessagingProviderException(getProviderId() + ": x-provider-config header is missing or empty");
@@ -69,7 +70,7 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
             String targetUrl = baseApiUrl + getEndpointPath();
 
             log.info("Sending {} request to {} | headers={} | payload={}",
-                    getProviderId(), targetUrl, headers.toSingleValueMap(), payload);
+                    getProviderId(), targetUrl, LogSanitizer.redactHeaders(headers.toSingleValueMap()), LogSanitizer.maskPayload(payload));
 
             ResponseEntity<String> response = restTemplate.exchange(
                     targetUrl,
@@ -86,11 +87,10 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
 
             log.error("{} config JSON parse error: {}",
                     getProviderId(),
-                    exception.getMessage(),
-                    exception);
+                    exception.getOriginalMessage() != null ? exception.getOriginalMessage() : "Invalid JSON format");
 
             throw new MessagingProviderException(
-                    getProviderId() + " config parse error: " + exception.getMessage(),
+                    getProviderId() + " config parse error: " + (exception.getOriginalMessage() != null ? exception.getOriginalMessage() : "Invalid JSON format"),
                     exception);
 
         } catch (HttpStatusCodeException exception) {
@@ -109,7 +109,7 @@ public abstract class AbstractRestMessagingAdapter<T extends ProviderConfig> imp
             log.error("{} network error for patientId={}, phone={}",
                     getProviderId(),
                     event.getPatientId(),
-                    event.getPhoneNumber(),
+                    LogSanitizer.maskPhone(event.getPhoneNumber()),
                     exception);
 
             throw new MessagingProviderException(

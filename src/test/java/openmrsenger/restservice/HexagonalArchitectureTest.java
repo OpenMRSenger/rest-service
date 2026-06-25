@@ -48,6 +48,7 @@ class HexagonalArchitectureTest {
                     "org.slf4j..",
                     "com.fasterxml.jackson..",
                     "org.springframework..",
+                    "io.micrometer..",
                     "org.junit..",
                     "org.mockito..");
 }

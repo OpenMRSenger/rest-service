@@ -6,6 +6,7 @@ import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import openmrsenger.restservice.shared.security.PayloadEncryptionService;
+import openmrsenger.restservice.shared.logging.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -53,6 +54,9 @@ public class NotificationEventListener {
             NotificationRequestedEvent event = objectMapper.readValue(decryptedJson, NotificationRequestedEvent.class);
             providerId = event.getProviderId();
 
+            log.info("Received notification event (retry stage {}): eventId={}, patientId={}, providerId={}, hospitalId={}",
+                    retryStage, event.getEventId(), event.getPatientId(), event.getProviderId(), event.getHospitalId());
+
             // 1. Idempotency check using the new log service
             if (notificationLogService.isAlreadySent(event.getEventId())) {
                 log.warn("Notification for event {} already successfully sent. Skipping.", event.getEventId());
@@ -79,15 +83,15 @@ public class NotificationEventListener {
 
         } catch (Exception e) {
             log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.",
-                    retryStage, e.getMessage());
+                    retryStage, LogSanitizer.sanitizeExceptionMessage(e), e);
 
             // 5. Try to log the failure if we have the event ID
             try {
                 String decryptedJson = encryptionService.decrypt(eventJson);
                 NotificationRequestedEvent event = objectMapper.readValue(decryptedJson, NotificationRequestedEvent.class);
-                notificationLogService.logFailure(event.getEventId(), e.getMessage());
+                notificationLogService.logFailure(event.getEventId(), LogSanitizer.sanitizeExceptionMessage(e));
             } catch (Exception jsonEx) {
-                log.error("Could not log failure status because payload could not be decrypted/parsed", jsonEx);
+                log.error("Could not log failure status because JSON is invalid: {}", LogSanitizer.sanitizeExceptionMessage(jsonEx), jsonEx);
             }
 
             meterRegistry.counter("notification_send", "provider", providerId, "outcome", "failure").increment();

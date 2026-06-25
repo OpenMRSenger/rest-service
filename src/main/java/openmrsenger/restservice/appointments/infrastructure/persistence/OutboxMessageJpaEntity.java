@@ -59,6 +59,8 @@ public class OutboxMessageJpaEntity {
 
     public UUID getId() { return id; }
     public UUID getEventId() { return eventId; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public String getTopic() { return topic; }
     public String getPayload() { return payload; }
     public boolean isProcessed() { return processed; }
