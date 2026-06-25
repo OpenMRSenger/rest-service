@@ -77,14 +77,14 @@ public class NotificationEventListener {
 
         } catch (Exception e) {
             log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.",
-                    retryStage, LogSanitizer.sanitizeExceptionMessage(e));
+                    retryStage, LogSanitizer.sanitizeExceptionMessage(e), e);
 
             // 5. Try to log the failure if we have the event ID
             try {
                 NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
                 notificationLogService.logFailure(event.getEventId(), LogSanitizer.sanitizeExceptionMessage(e));
             } catch (Exception jsonEx) {
-                log.error("Could not log failure status because JSON is invalid", LogSanitizer.sanitizeExceptionMessage(jsonEx));
+                log.error("Could not log failure status because JSON is invalid: {}", LogSanitizer.sanitizeExceptionMessage(jsonEx), jsonEx);
             }
 
             meterRegistry.counter("notification_send", "provider", providerId, "outcome", "failure").increment();
