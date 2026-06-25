@@ -19,7 +19,7 @@ public class ApiKeyWebhookAuthenticator implements WebhookAuthenticator {
     @Override
     public boolean authenticate(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        log.info("Received webhook with Authorization header: {}", authHeader);
+        log.info("Received webhook with Authorization header: {}", authHeader != null ? "[PRESENT]" : "[MISSING]");
         if (authHeader == null) {
             log.warn("Webhook received without Authorization header");
             return false;

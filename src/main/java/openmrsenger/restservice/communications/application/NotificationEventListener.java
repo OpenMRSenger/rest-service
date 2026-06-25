@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
+import openmrsenger.restservice.shared.logging.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -42,11 +43,13 @@ public class NotificationEventListener {
             String eventJson,
             @Header(name = RabbitMqConstants.RETRY_STAGE_HEADER, defaultValue = "0") int retryStage) {
 
-        log.info("Received notification event (retry stage {}): {}", retryStage, eventJson);
         String providerId = "unknown";
         try {
             NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
             providerId = event.getProviderId();
+
+            log.info("Received notification event (retry stage {}): eventId={}, patientId={}, providerId={}, hospitalId={}",
+                    retryStage, event.getEventId(), event.getPatientId(), event.getProviderId(), event.getHospitalId());
 
             // 1. Idempotency check using the new log service
             if (notificationLogService.isAlreadySent(event.getEventId())) {
@@ -74,14 +77,14 @@ public class NotificationEventListener {
 
         } catch (Exception e) {
             log.error("Failed to process notification event (retry stage {}): {}. Scheduling next retry.",
-                    retryStage, e.getMessage());
+                    retryStage, LogSanitizer.sanitizeExceptionMessage(e));
 
             // 5. Try to log the failure if we have the event ID
             try {
                 NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
-                notificationLogService.logFailure(event.getEventId(), e.getMessage());
+                notificationLogService.logFailure(event.getEventId(), LogSanitizer.sanitizeExceptionMessage(e));
             } catch (Exception jsonEx) {
-                log.error("Could not log failure status because JSON is invalid", jsonEx);
+                log.error("Could not log failure status because JSON is invalid", LogSanitizer.sanitizeExceptionMessage(jsonEx));
             }
 
             meterRegistry.counter("notification_send", "provider", providerId, "outcome", "failure").increment();
