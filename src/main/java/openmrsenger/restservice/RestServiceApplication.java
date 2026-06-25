@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
@@ -16,6 +17,8 @@ import openmrsenger.restservice.shared.security.StartupSecretsValidator;
 import org.springframework.beans.factory.annotation.Value;
 
 
+import javax.net.ssl.SSLParameters;
+import java.net.http.HttpClient;
 
 @SpringBootApplication
 @EnableScheduling
@@ -40,7 +43,12 @@ public class RestServiceApplication {
 
   @Bean
   public RestTemplate restTemplate() {
-    return new RestTemplate();
+    SSLParameters sslParameters = new SSLParameters();
+    sslParameters.setProtocols(new String[]{"TLSv1.3"});
+    HttpClient httpClient = HttpClient.newBuilder()
+            .sslParameters(sslParameters)
+            .build();
+    return new RestTemplate(new JdkClientHttpRequestFactory(httpClient));
   }
 
   @Bean
