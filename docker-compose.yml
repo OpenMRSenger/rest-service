@@ -80,6 +80,10 @@ services:
       - BASE_API_URL=http://fakecomworld:8080
       - STUDENT_GROUP=${STUDENT_GROUP}
 
+      # Secrets injected from the host environment / CI secret store - never hardcoded here.
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY}
+
       - SWIFT_SEND_API_KEY=${SWIFT_SEND_API_KEY}
       - ASYNC_FLOW_API_KEY=${ASYNC_FLOW_API_KEY}
 
