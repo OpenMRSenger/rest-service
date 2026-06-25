@@ -60,12 +60,6 @@ required to validate the retry mechanism under load — watch the **RabbitMQ
 Queue Size** panel in Grafana for retry queue depth and DLQ growth during and
 after the test.
 
-True network-latency injection (e.g. slowing the call to fakecomworld) is out
-of scope for k6, since k6 only controls the client side. To add it, put
-[Toxiproxy](https://github.com/Shopify/toxiproxy) or `tc netem` in front of
-`fakecomworld`/`BASE_API_URL` and add latency/abort toxics during the spike
-or soak phase.
-
 ## Per-provider stats
 
 The script tracks duration/success/failure per provider and prints a
@@ -77,6 +71,21 @@ credentials/env var first — webhook responses are always `200` regardless of
 downstream provider failures (the provider call happens async), so HTTP-level
 failures are not where provider auth problems show up; the per-provider
 table is.
+
+## Report output
+
+Every run of `handleSummary()` (`webhook-load-test.js`) writes, into the
+current directory:
+
+- `provider-stats.json` — per-provider table as JSON.
+- `summary.html` — full interactive HTML report ([k6-reporter](https://github.com/benc-uk/k6-reporter)): all scenario metrics, thresholds, checks.
+
+For the raw k6 summary itself as JSON/text, use the standard k6 flags:
+
+```bash
+k6 run --summary-export=summary.json webhook-load-test.js   # summary stats
+k6 run --out json=results.json webhook-load-test.js         # full raw samples
+```
 
 ## What to watch in Grafana while it runs
 

@@ -2,6 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
 
 // ---------------------------------------------------------------------------
 // OpenMRSenger - Appointment Webhook Stress Test
@@ -190,6 +191,7 @@ export function handleSummary(data) {
   return {
     stdout: textSummary(data, { indent: ' ', enableColors: true }) + table,
     'provider-stats.json': JSON.stringify(rows, null, 2),
+    'summary.html': htmlReport(data, { title: 'Appointment Webhook Stress Test' }),
   };
 }
 
