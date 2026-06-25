@@ -4,11 +4,23 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Locale;
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-public class LogSanitizer {
+@SuppressWarnings("java:S2068")
+public final class LogSanitizer {
+
+    private static final String MASKED = "[MASKED]";
+    private static final String DESTINATION = "destination";
+    private static final String CONTENT = "content";
+    private static final String CONTENT_UPPER = "Content";
+    private static final String RECIPIENTS = "Recipients";
+
+    private LogSanitizer() {
+        throw new IllegalStateException("Utility class");
+    }
 
     private static final Set<String> SENSITIVE_KEYS = Set.of(
             "authorization",
@@ -21,10 +33,10 @@ public class LogSanitizer {
             "client_secret"
     );
 
-    private static final Pattern JSON_RECIPIENT_PATTERN = Pattern.compile("(\"(?:recipient|destination|PhoneNumber|Recipients)\"\\s*:\\s*\")([^\"]+)(\")", Pattern.CASE_INSENSITIVE);
-    private static final Pattern JSON_BODY_PATTERN = Pattern.compile("(\"(?:body|content|Content)\"\\s*:\\s*\")([^\"]+)(\")", Pattern.CASE_INSENSITIVE);
-    private static final Pattern XML_PHONE_PATTERN = Pattern.compile("(<PhoneNumber>)([^<]+)(</PhoneNumber>)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern XML_TEXT_PATTERN = Pattern.compile("(<MessageText>)([^<]+)(</MessageText>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JSON_RECIPIENT_PATTERN = Pattern.compile("(\"(?:recipient|destination|PhoneNumber|Recipients)\"\\s*:\\s*\")([^\"]++)(\")", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JSON_BODY_PATTERN = Pattern.compile("(\"(?:body|content|Content)\"\\s*:\\s*\")([^\"]++)(\")", Pattern.CASE_INSENSITIVE);
+    private static final Pattern XML_PHONE_PATTERN = Pattern.compile("(<PhoneNumber>)([^<]++)(</PhoneNumber>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern XML_TEXT_PATTERN = Pattern.compile("(<MessageText>)([^<]++)(</MessageText>)", Pattern.CASE_INSENSITIVE);
 
     public static String maskPhone(String phone) {
         if (phone == null) {
@@ -40,15 +52,15 @@ public class LogSanitizer {
         if (message == null) {
             return null;
         }
-        return "[MASKED]";
+        return MASKED;
     }
 
     public static String sanitizeExceptionMessage(Throwable t) {
         if (t == null) {
             return null;
         }
-        if (t instanceof JsonProcessingException) {
-            return ((JsonProcessingException) t).getOriginalMessage();
+        if (t instanceof JsonProcessingException jsonEx) {
+            return jsonEx.getOriginalMessage();
         }
         String msg = t.getMessage();
         if (msg == null) {
@@ -59,7 +71,7 @@ public class LogSanitizer {
 
     public static Map<String, String> redactHeaders(Map<String, String> headers) {
         if (headers == null) {
-            return null;
+            return Collections.emptyMap();
         }
         Map<String, String> redacted = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -73,50 +85,51 @@ public class LogSanitizer {
         return redacted;
     }
 
-    @SuppressWarnings("unchecked")
     public static Object maskPayload(Object payload) {
         if (payload == null) {
             return null;
         }
-        if (payload instanceof Map) {
-            try {
-                Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) payload);
-                if (copy.containsKey("destination")) {
-                    Object dest = copy.get("destination");
-                    copy.put("destination", dest instanceof String ? maskPhone((String) dest) : dest);
+        if (payload instanceof Map<?, ?> rawMap) {
+            Map<String, Object> copy = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                if (entry.getKey() instanceof String keyStr) {
+                    copy.put(keyStr, entry.getValue());
                 }
-                if (copy.containsKey("content")) {
-                    copy.put("content", "[MASKED]");
-                }
-                if (copy.containsKey("Recipients")) {
-                    Object rec = copy.get("Recipients");
-                    if (rec instanceof String[]) {
-                        String[] arr = (String[]) rec;
-                        String[] maskedArr = new String[arr.length];
-                        for (int i = 0; i < arr.length; i++) {
-                            maskedArr[i] = maskPhone(arr[i]);
-                        }
-                        copy.put("Recipients", java.util.Arrays.asList(maskedArr));
-                    } else if (rec instanceof java.util.List<?>) {
-                        java.util.List<?> list = (java.util.List<?>) rec;
-                        java.util.List<String> maskedList = list.stream()
-                                .map(item -> item instanceof String ? maskPhone((String) item) : String.valueOf(item))
-                                .toList();
-                        copy.put("Recipients", maskedList);
-                    }
-                }
-                if (copy.containsKey("Content")) {
-                    copy.put("Content", "[MASKED]");
-                }
-                return copy;
-            } catch (Exception e) {
-                return "[MASKED PAYLOAD ERROR]";
             }
+            copy.computeIfPresent(DESTINATION, (k, dest) -> dest instanceof String destStr ? maskPhone(destStr) : dest);
+            copy.computeIfPresent(CONTENT, (k, v) -> MASKED);
+            copy.computeIfPresent(CONTENT_UPPER, (k, v) -> MASKED);
+            copy.computeIfPresent(RECIPIENTS, (k, rec) -> {
+                if (rec instanceof String[] arr) {
+                    String[] maskedArr = new String[arr.length];
+                    for (int i = 0; i < arr.length; i++) {
+                        maskedArr[i] = maskPhone(arr[i]);
+                    }
+                    return java.util.Arrays.asList(maskedArr);
+                } else if (rec instanceof java.util.List<?> list) {
+                    return list.stream()
+                            .map(item -> item instanceof String itemStr ? maskPhone(itemStr) : String.valueOf(item))
+                            .toList();
+                }
+                return rec;
+            });
+            return copy;
         }
-        if (payload instanceof String) {
-            return maskStringPayload((String) payload);
+        if (payload instanceof String strPayload) {
+            return maskStringPayload(strPayload);
         }
         return payload;
+    }
+
+    private static String replaceAll(String input, Pattern pattern, java.util.function.Function<Matcher, String> replacementFunction) {
+        Matcher matcher = pattern.matcher(input);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String replacement = replacementFunction.apply(matcher);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 
     private static String maskStringPayload(String payload) {
@@ -124,47 +137,10 @@ public class LogSanitizer {
             return null;
         }
         String result = payload;
-
-        // Match JSON phone numbers
-        Matcher jsonPhoneMatcher = JSON_RECIPIENT_PATTERN.matcher(result);
-        StringBuilder sb = new StringBuilder();
-        while (jsonPhoneMatcher.find()) {
-            String replacement = jsonPhoneMatcher.group(1) + maskPhone(jsonPhoneMatcher.group(2)) + jsonPhoneMatcher.group(3);
-            jsonPhoneMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
-        }
-        jsonPhoneMatcher.appendTail(sb);
-        result = sb.toString();
-
-        // Match JSON body/content
-        Matcher jsonBodyMatcher = JSON_BODY_PATTERN.matcher(result);
-        sb = new StringBuilder();
-        while (jsonBodyMatcher.find()) {
-            String replacement = jsonBodyMatcher.group(1) + "[MASKED]" + jsonBodyMatcher.group(3);
-            jsonBodyMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
-        }
-        jsonBodyMatcher.appendTail(sb);
-        result = sb.toString();
-
-        // Match XML phone numbers
-        Matcher xmlPhoneMatcher = XML_PHONE_PATTERN.matcher(result);
-        sb = new StringBuilder();
-        while (xmlPhoneMatcher.find()) {
-            String replacement = xmlPhoneMatcher.group(1) + maskPhone(xmlPhoneMatcher.group(2)) + xmlPhoneMatcher.group(3);
-            xmlPhoneMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
-        }
-        xmlPhoneMatcher.appendTail(sb);
-        result = sb.toString();
-
-        // Match XML text
-        Matcher xmlTextMatcher = XML_TEXT_PATTERN.matcher(result);
-        sb = new StringBuilder();
-        while (xmlTextMatcher.find()) {
-            String replacement = xmlTextMatcher.group(1) + "[MASKED]" + xmlTextMatcher.group(3);
-            xmlTextMatcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
-        }
-        xmlTextMatcher.appendTail(sb);
-        result = sb.toString();
-
+        result = replaceAll(result, JSON_RECIPIENT_PATTERN, m -> m.group(1) + maskPhone(m.group(2)) + m.group(3));
+        result = replaceAll(result, JSON_BODY_PATTERN, m -> m.group(1) + MASKED + m.group(3));
+        result = replaceAll(result, XML_PHONE_PATTERN, m -> m.group(1) + maskPhone(m.group(2)) + m.group(3));
+        result = replaceAll(result, XML_TEXT_PATTERN, m -> m.group(1) + MASKED + m.group(3));
         return result;
     }
 }

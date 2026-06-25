@@ -26,7 +26,7 @@ class LogSanitizerTest {
 
     @Test
     void testRedactHeaders() {
-        assertNull(LogSanitizer.redactHeaders(null));
+        assertTrue(LogSanitizer.redactHeaders(null).isEmpty());
 
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Bearer token123");
