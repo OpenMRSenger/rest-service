@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
+import openmrsenger.restservice.shared.security.PayloadEncryptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -23,17 +24,20 @@ public class NotificationEventListener {
     private final NotificationLogService notificationLogService;
     private final EventRetryService eventRetryService;
     private final MeterRegistry meterRegistry;
+    private final PayloadEncryptionService encryptionService;
 
     public NotificationEventListener(List<MessagingProviderPort> providers,
                                      ObjectMapper objectMapper,
                                      NotificationLogService notificationLogService,
                                      EventRetryService eventRetryService,
-                                     MeterRegistry meterRegistry) {
+                                     MeterRegistry meterRegistry,
+                                     PayloadEncryptionService encryptionService) {
         this.providers = providers;
         this.objectMapper = objectMapper;
         this.notificationLogService = notificationLogService;
         this.eventRetryService = eventRetryService;
         this.meterRegistry = meterRegistry;
+        this.encryptionService = encryptionService;
     }
 
     @RabbitListener(queues = RabbitMqConstants.MAIN_QUEUE)
@@ -42,10 +46,11 @@ public class NotificationEventListener {
             String eventJson,
             @Header(name = RabbitMqConstants.RETRY_STAGE_HEADER, defaultValue = "0") int retryStage) {
 
-        log.info("Received notification event (retry stage {}): {}", retryStage, eventJson);
+        log.info("Received encrypted notification event (retry stage {})", retryStage);
         String providerId = "unknown";
         try {
-            NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
+            String decryptedJson = encryptionService.decrypt(eventJson);
+            NotificationRequestedEvent event = objectMapper.readValue(decryptedJson, NotificationRequestedEvent.class);
             providerId = event.getProviderId();
 
             // 1. Idempotency check using the new log service
@@ -78,13 +83,15 @@ public class NotificationEventListener {
 
             // 5. Try to log the failure if we have the event ID
             try {
-                NotificationRequestedEvent event = objectMapper.readValue(eventJson, NotificationRequestedEvent.class);
+                String decryptedJson = encryptionService.decrypt(eventJson);
+                NotificationRequestedEvent event = objectMapper.readValue(decryptedJson, NotificationRequestedEvent.class);
                 notificationLogService.logFailure(event.getEventId(), e.getMessage());
             } catch (Exception jsonEx) {
-                log.error("Could not log failure status because JSON is invalid", jsonEx);
+                log.error("Could not log failure status because payload could not be decrypted/parsed", jsonEx);
             }
 
             meterRegistry.counter("notification_send", "provider", providerId, "outcome", "failure").increment();
+            // Retry with the still-encrypted payload - it is decrypted again on the next delivery attempt.
             eventRetryService.scheduleRetry(eventJson, retryStage, e);
         }
     }

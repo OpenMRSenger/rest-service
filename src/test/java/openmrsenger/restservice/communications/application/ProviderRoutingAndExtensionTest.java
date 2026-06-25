@@ -5,6 +5,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
+import openmrsenger.restservice.shared.security.AesPayloadEncryptionService;
+import openmrsenger.restservice.shared.security.PayloadEncryptionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,10 +38,13 @@ class ProviderRoutingAndExtensionTest {
     @Mock
     private EventRetryService eventRetryService;
 
+    private static final String TEST_KEY = "hhTa0lgeWcYZ1CvUmAmAHpxbdxw4GNKD33gC8LfnswA=";
+
     private NotificationEventListener eventListener;
-    
+
     // Fix: Registreer JavaTimeModule voor Instant ondersteuning
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private PayloadEncryptionService encryptionService = new AesPayloadEncryptionService(TEST_KEY);
 
     @BeforeEach
     void setUp() {
@@ -51,7 +56,8 @@ class ProviderRoutingAndExtensionTest {
                 objectMapper,
                 notificationLogService,
                 eventRetryService,
-                new SimpleMeterRegistry()
+                new SimpleMeterRegistry(),
+                encryptionService
         );
     }
 
@@ -59,9 +65,9 @@ class ProviderRoutingAndExtensionTest {
     @DisplayName("Routeert correct naar SwiftSendAdapter bij configuratie")
     void handleEvent_ShouldRouteToSwiftSend() throws Exception {
         NotificationRequestedEvent event = createEvent("SWIFTSEND");
-        String json = objectMapper.writeValueAsString(event);
+        String encryptedPayload = encryptionService.encrypt(objectMapper.writeValueAsString(event));
 
-        eventListener.handleNotificationEvent(json, 0);
+        eventListener.handleNotificationEvent(encryptedPayload, 0);
 
         verify(swiftSendAdapter, times(1)).send(any(), any());
         verify(securePostAdapter, never()).send(any(), any());
@@ -71,9 +77,9 @@ class ProviderRoutingAndExtensionTest {
     @DisplayName("Routeert naar SecurePostAdapter en valideert thread-safe token handling potentie")
     void handleEvent_ShouldRouteToSecurePost() throws Exception {
         NotificationRequestedEvent event = createEvent("SECUREPOST");
-        String json = objectMapper.writeValueAsString(event);
+        String encryptedPayload = encryptionService.encrypt(objectMapper.writeValueAsString(event));
 
-        eventListener.handleNotificationEvent(json, 0);
+        eventListener.handleNotificationEvent(encryptedPayload, 0);
 
         verify(securePostAdapter, times(1)).send(any(), any());
         verify(swiftSendAdapter, never()).send(any(), any());

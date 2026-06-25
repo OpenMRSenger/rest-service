@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import openmrsenger.restservice.appointments.domain.AppointmentRepository;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
+import openmrsenger.restservice.shared.security.PayloadEncryptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,10 +25,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ObjectMapper objectMapper;
+    private final PayloadEncryptionService encryptionService;
 
-    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, ObjectMapper objectMapper) {
+    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, ObjectMapper objectMapper,
+                                   PayloadEncryptionService encryptionService) {
         this.appointmentRepository = appointmentRepository;
         this.objectMapper = objectMapper;
+        this.encryptionService = encryptionService;
     }
 
     @Transactional
@@ -123,7 +127,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private void saveEvent(NotificationRequestedEvent event, OffsetDateTime scheduledFor, OffsetDateTime expiresAt, UUID eventId) {
         try {
-            appointmentRepository.saveToOutbox(TOPIC, objectMapper.writeValueAsString(event), scheduledFor, expiresAt, eventId);
+            String json = objectMapper.writeValueAsString(event);
+            String encryptedPayload = encryptionService.encrypt(json);
+            appointmentRepository.saveToOutbox(TOPIC, encryptedPayload, scheduledFor, expiresAt, eventId);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize NotificationRequestedEvent", e);
         }

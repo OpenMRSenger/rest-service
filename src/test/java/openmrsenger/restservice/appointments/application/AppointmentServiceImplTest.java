@@ -3,6 +3,8 @@ package openmrsenger.restservice.appointments.application;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import openmrsenger.restservice.appointments.domain.AppointmentRepository;
+import openmrsenger.restservice.shared.security.AesPayloadEncryptionService;
+import openmrsenger.restservice.shared.security.PayloadEncryptionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -30,15 +33,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AppointmentServiceImplTest {
 
+    private static final String TEST_KEY = "hhTa0lgeWcYZ1CvUmAmAHpxbdxw4GNKD33gC8LfnswA=";
+
     @Mock
     private AppointmentRepository appointmentRepository;
 
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private PayloadEncryptionService encryptionService = new AesPayloadEncryptionService(TEST_KEY);
     private AppointmentServiceImpl appointmentService;
 
     @BeforeEach
     void setUp() {
-        appointmentService = new AppointmentServiceImpl(appointmentRepository, objectMapper);
+        appointmentService = new AppointmentServiceImpl(appointmentRepository, objectMapper, encryptionService);
     }
 
     @Test
@@ -70,8 +76,13 @@ class AppointmentServiceImplTest {
 
         ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
         verify(appointmentRepository, atLeastOnce()).saveToOutbox(any(), payloadCaptor.capture(), any(), any(), any());
-        
-        assertTrue(payloadCaptor.getValue().contains(provider), "De outbox payload moet de geconfigureerde provider bevatten");
+
+        String storedPayload = payloadCaptor.getValue();
+        assertFalse(storedPayload.contains(provider), "De opgeslagen payload mag geen leesbare tekst bevatten (moet versleuteld zijn)");
+        assertFalse(storedPayload.contains(phone), "De opgeslagen payload mag geen leesbaar telefoonnummer bevatten");
+
+        String decrypted = encryptionService.decrypt(storedPayload);
+        assertTrue(decrypted.contains(provider), "Na decryptie moet de payload de geconfigureerde provider bevatten");
     }
 
     private FhirAppointmentDto createValidFhirDto(String appUuid, String patientUuid, String phone, String status) {
