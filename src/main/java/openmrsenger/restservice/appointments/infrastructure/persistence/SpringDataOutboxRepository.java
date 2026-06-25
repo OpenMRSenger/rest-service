@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Repository
 public interface SpringDataOutboxRepository extends JpaRepository<OutboxMessageJpaEntity, UUID> {
-    List<OutboxMessageJpaEntity> findByProcessedFalseAndCancelledFalseAndScheduledForBefore(LocalDateTime dateTime);
+    List<OutboxMessageJpaEntity> findByProcessedFalseAndCancelledFalseAndScheduledForBefore(OffsetDateTime dateTime);
 
     Optional<OutboxMessageJpaEntity> findByEventIdAndProcessedFalseAndCancelledFalse(UUID eventId);
 

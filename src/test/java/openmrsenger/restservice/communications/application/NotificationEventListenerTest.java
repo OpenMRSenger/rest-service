@@ -2,6 +2,7 @@ package openmrsenger.restservice.communications.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ class NotificationEventListenerTest {
 
     @BeforeEach
     void setUp() {
-        listener = new NotificationEventListener(List.of(provider), objectMapper, logService, retryService);
+        listener = new NotificationEventListener(List.of(provider), objectMapper, logService, retryService, new SimpleMeterRegistry());
     }
 
     @Test

@@ -1,0 +1,42 @@
+[
+  {
+    "provider": "SWIFTSEND",
+    "total": 10398,
+    "success": 10398,
+    "failed": 0,
+    "errRate": "0.00",
+    "avg": "748.24",
+    "p95": "2482.26",
+    "p99": "3014.28"
+  },
+  {
+    "provider": "ASYNCFLOW",
+    "total": 10706,
+    "success": 10706,
+    "failed": 0,
+    "errRate": "0.00",
+    "avg": "737.37",
+    "p95": "2506.69",
+    "p99": "2953.09"
+  },
+  {
+    "provider": "SECUREPOST",
+    "total": 10517,
+    "success": 10517,
+    "failed": 0,
+    "errRate": "0.00",
+    "avg": "750.50",
+    "p95": "2179.71",
+    "p99": "3031.55"
+  },
+  {
+    "provider": "LEGACYLINK",
+    "total": 10696,
+    "success": 10696,
+    "failed": 0,
+    "errRate": "0.00",
+    "avg": "739.75",
+    "p95": "2442.51",
+    "p99": "2983.47"
+  }
+]
