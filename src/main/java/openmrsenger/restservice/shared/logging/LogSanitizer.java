@@ -33,8 +33,8 @@ public final class LogSanitizer {
             "client_secret"
     );
 
-    private static final Pattern JSON_RECIPIENT_PATTERN = Pattern.compile("(\"(?:recipient|destination|PhoneNumber|Recipients)\"\\s*:\\s*\")([^\"]++)(\")", Pattern.CASE_INSENSITIVE);
-    private static final Pattern JSON_BODY_PATTERN = Pattern.compile("(\"(?:body|content|Content)\"\\s*:\\s*\")([^\"]++)(\")", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JSON_RECIPIENT_PATTERN = Pattern.compile("(\"(?:recipients?|destination|PhoneNumber)\"\\s*:\\s*\")([^\"]++)(\")", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JSON_BODY_PATTERN = Pattern.compile("(\"(?:body|content)\"\\s*:\\s*\")([^\"]++)(\")", Pattern.CASE_INSENSITIVE);
     private static final Pattern XML_PHONE_PATTERN = Pattern.compile("(<PhoneNumber>)([^<]++)(</PhoneNumber>)", Pattern.CASE_INSENSITIVE);
     private static final Pattern XML_TEXT_PATTERN = Pattern.compile("(<MessageText>)([^<]++)(</MessageText>)", Pattern.CASE_INSENSITIVE);
 
@@ -85,6 +85,22 @@ public final class LogSanitizer {
         return redacted;
     }
 
+    private static Object maskRecipients(Object rec) {
+        if (rec instanceof String[] arr) {
+            String[] maskedArr = new String[arr.length];
+            for (int i = 0; i < arr.length; i++) {
+                maskedArr[i] = maskPhone(arr[i]);
+            }
+            return java.util.Arrays.asList(maskedArr);
+        }
+        if (rec instanceof java.util.List<?> list) {
+            return list.stream()
+                    .map(item -> item instanceof String itemStr ? maskPhone(itemStr) : String.valueOf(item))
+                    .toList();
+        }
+        return rec;
+    }
+
     public static Object maskPayload(Object payload) {
         if (payload == null) {
             return null;
@@ -99,20 +115,7 @@ public final class LogSanitizer {
             copy.computeIfPresent(DESTINATION, (k, dest) -> dest instanceof String destStr ? maskPhone(destStr) : dest);
             copy.computeIfPresent(CONTENT, (k, v) -> MASKED);
             copy.computeIfPresent(CONTENT_UPPER, (k, v) -> MASKED);
-            copy.computeIfPresent(RECIPIENTS, (k, rec) -> {
-                if (rec instanceof String[] arr) {
-                    String[] maskedArr = new String[arr.length];
-                    for (int i = 0; i < arr.length; i++) {
-                        maskedArr[i] = maskPhone(arr[i]);
-                    }
-                    return java.util.Arrays.asList(maskedArr);
-                } else if (rec instanceof java.util.List<?> list) {
-                    return list.stream()
-                            .map(item -> item instanceof String itemStr ? maskPhone(itemStr) : String.valueOf(item))
-                            .toList();
-                }
-                return rec;
-            });
+            copy.computeIfPresent(RECIPIENTS, (k, rec) -> maskRecipients(rec));
             return copy;
         }
         if (payload instanceof String strPayload) {
