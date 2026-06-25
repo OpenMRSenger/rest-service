@@ -32,6 +32,10 @@ public class AesPayloadEncryptionService implements PayloadEncryptionService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AesPayloadEncryptionService(@Value("${app.encryption.key}") String base64Key) {
+        if (base64Key == null || base64Key.isBlank()) {
+            throw new IllegalStateException(
+                    "app.encryption.key is not configured. Set the APP_ENCRYPTION_KEY environment variable to a Base64-encoded 32-byte (256-bit) key.");
+        }
         byte[] keyBytes;
         try {
             keyBytes = Base64.getDecoder().decode(base64Key);

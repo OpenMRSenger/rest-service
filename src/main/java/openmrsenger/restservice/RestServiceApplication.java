@@ -12,6 +12,8 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
+import openmrsenger.restservice.shared.security.StartupSecretsValidator;
+import org.springframework.beans.factory.annotation.Value;
 
 
 
@@ -25,6 +27,15 @@ public class RestServiceApplication {
 
   public static void main(String[] args) {
     SpringApplication.run(RestServiceApplication.class, args);
+  }
+
+  // Fails startup fast (before the web server accepts traffic) if a required secret/key
+  // environment variable is missing or blank. See StartupSecretsValidator.
+  @Bean
+  public StartupSecretsValidator startupSecretsValidator(
+          @Value("${app.encryption.key}") String encryptionKey,
+          @Value("${webhook.secret}") String webhookSecret) {
+    return new StartupSecretsValidator(encryptionKey, webhookSecret);
   }
 
   @Bean

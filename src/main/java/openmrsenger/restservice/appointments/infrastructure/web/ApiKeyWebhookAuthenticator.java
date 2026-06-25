@@ -12,7 +12,11 @@ public class ApiKeyWebhookAuthenticator implements WebhookAuthenticator {
     private static final Logger log = LoggerFactory.getLogger(ApiKeyWebhookAuthenticator.class);
     private final String secretKey;
 
-    public ApiKeyWebhookAuthenticator(@Value("${webhook.secret:my-secret-key}") String secretKey) {
+    public ApiKeyWebhookAuthenticator(@Value("${webhook.secret}") String secretKey) {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "webhook.secret is not configured. Set the WEBHOOK_SECRET environment variable.");
+        }
         this.secretKey = secretKey;
     }
 
