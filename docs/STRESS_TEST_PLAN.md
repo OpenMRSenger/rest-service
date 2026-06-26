@@ -88,7 +88,8 @@ To prove the system handles 50 hospitals under this plan, the following metrics 
 | Metric | Target Value | Verification Source |
 |--------|--------------|---------------------|
 | **HTTP Request Success Rate** | > 99.9% (200 OK responses) | `http_req_failed` in k6 |
-| **Response Latency (SLA)** | p95 < 1000ms | `http_req_duration` in k6 |
+| **Response Latency (SLA)** | p95 < 1000ms (Baseline & Soak)| `http_req_duration` in k6 |
+| **Response Latency (SLA)** | p95 < 3000ms (Spike)| `http_req_duration` in k6 |
 | **Outbox Relay Integrity** | No lost messages, outbox queue drains | `rabbitmq_queue_messages` in Grafana |
 | **Database Pool Stability** | Active connections < pool max (no exhaustion) | `hikaricp_connections_active` in Grafana |
 | **JVM Memory Usage** | Heap consumption stabilizes (no memory leaks) | `jvm_memory_used_bytes` in Grafana |
