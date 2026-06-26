@@ -11,6 +11,7 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import openmrsenger.restservice.shared.messaging.RabbitMqConstants;
 import openmrsenger.restservice.shared.security.StartupSecretsValidator;
@@ -59,11 +60,13 @@ public class RestServiceApplication {
   }
 
   @Bean
+  @Profile("!test")
   public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
     return new RabbitAdmin(connectionFactory);
   }
 
   @Bean
+  @Profile("!test")
   public ApplicationRunner rabbitMqInitializer(RabbitAdmin rabbitAdmin) {
     return args -> rabbitAdmin.initialize();
   }
