@@ -90,7 +90,7 @@ PROVIDERS.forEach((p) => {
 // participant[] with actor.reference (Patient/Practitioner) + telecom.
 function buildPayload(tag) {
   const now = new Date();
-  const start = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const start = new Date(now.getTime() + 24 * 60 * 60 * 1002);
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   const id = `${tag}-${__VU}-${__ITER}-${Math.floor(Math.random() * 1e6)}`;
 

@@ -19,8 +19,10 @@ public interface NotificationLogService {
      * Logs the intent to send a notification. Status becomes PENDING.
      *
      * @param eventId The unique ID of the event.
+     * @param providerId The ID of the messaging provider.
+     * @param hospitalId The ID of the hospital.
      */
-    void logPending(UUID eventId);
+    void logPending(UUID eventId, String providerId, String hospitalId);
 
     /**
      * Logs that a notification has been successfully sent. Status becomes SENT.

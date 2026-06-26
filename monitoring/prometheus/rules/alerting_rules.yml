@@ -30,3 +30,39 @@ groups:
         annotations:
           summary: "High 95th percentile latency"
           description: "95th percentile request latency > 1s for more than 5 minutes."
+
+      - alert: DeadLetterQueueNotEmpty
+        expr: rabbitmq_queue_messages{queue="appointment.events.dlq"} > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Messages detected in DLQ"
+          description: "Dead letter queue appointment.events.dlq has {{ $value }} messages awaiting manual intervention."
+
+      - alert: QueueBacklogHigh
+        expr: rabbitmq_queue_messages{queue="appointment.events"} > 5000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High queue backlog on main queue"
+          description: "Queue appointment.events has over 5000 messages for 5 minutes."
+
+      - alert: DatabasePoolSaturation
+        expr: (hikaricp_connections_active / hikaricp_connections_max) > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HikariCP database pool saturated"
+          description: "Hikari connection pool is at {{ $value }} capacity for more than 2 minutes."
+
+      - alert: PostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres exporter offline"
+          description: "Postgres exporter has been down for more than 2 minutes."

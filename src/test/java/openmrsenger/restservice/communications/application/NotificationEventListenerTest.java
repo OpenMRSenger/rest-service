@@ -62,7 +62,7 @@ class NotificationEventListenerTest {
         listener.handleNotificationEvent(encryptedPayload, 0);
 
         // Assert
-        verify(logService).logPending(eventId);
+        verify(logService).logPending(eventId, "TEST_PROVIDER", "HOSP-1");
         verify(provider).send(any(), any());
         verify(logService).logSuccess(eventId);
         verify(retryService, never()).scheduleRetry(any(), anyInt(), any());
@@ -83,7 +83,7 @@ class NotificationEventListenerTest {
         listener.handleNotificationEvent(encryptedPayload, 0);
 
         // Assert
-        verify(logService, never()).logPending(any());
+        verify(logService, never()).logPending(any(), any(), any());
         verify(provider, never()).send(any(), any());
         verify(retryService, never()).scheduleRetry(any(), anyInt(), any());
     }
