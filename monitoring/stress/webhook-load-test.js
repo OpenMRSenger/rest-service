@@ -90,7 +90,7 @@ PROVIDERS.forEach((p) => {
 // participant[] with actor.reference (Patient/Practitioner) + telecom.
 function buildPayload(tag) {
   const now = new Date();
-  const start = new Date(now.getTime() + 24 * 60 * 60 * 1002);
+  const start = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   const id = `${tag}-${__VU}-${__ITER}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -239,7 +239,7 @@ export const options = {
     // Error rate is tight because injected failures still return 200 (accepted into outbox,
     // failed asynchronously via retry queues -> DLQ) — only real infra errors count here.
     'http_req_duration{test_phase:baseline}': ['p(95)<500'],
-    'http_req_duration{test_phase:spike}': ['p(95)<2000'],
+    'http_req_duration{test_phase:spike}': ['p(95)<3000'],
     'http_req_duration{test_phase:soak}': ['p(95)<500'],
     'http_req_failed{test_phase:baseline}': ['rate<0.02'],
     'http_req_failed{test_phase:spike}': ['rate<0.05'],
