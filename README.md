@@ -98,3 +98,8 @@ Required headers:
 | `x-messaging-provider` | One of: `SWIFT_SEND`, `ASYNC_FLOW`, `SECURE_POST`, `LEGACY_LINK` |
 | `x-hospital-name`     | Name of the hospital                             |
 | `x-provider-config`   | JSON string with provider credentials (optional) |
+
+## Architecture Documentation
+
+For a detailed explanation of the system's modular monolith design, hexagonal architecture (ports and adapters), and asynchronous messaging flows, see the [Architecture Documentation (written in Dutch)](docs/ARCHITECTURE.md).
+
