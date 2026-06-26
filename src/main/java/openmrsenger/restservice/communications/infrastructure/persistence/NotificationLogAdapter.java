@@ -22,7 +22,7 @@ public class NotificationLogAdapter implements NotificationLogService {
     @Transactional(readOnly = true)
     public boolean isAlreadySent(UUID eventId) {
         return repository.findById(eventId)
-                .map(log -> "SENT".equals(log.getStatus()))
+                .map(notificationLog -> "SENT".equals(notificationLog.getStatus()))
                 .orElse(false);
     }
 
