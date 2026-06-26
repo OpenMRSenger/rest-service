@@ -42,11 +42,13 @@ class NotificationLogAdapterTest {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        adapter.logPending(id);
+        adapter.logPending(id, "TEST_PROVIDER", "HOSP-1");
 
         ArgumentCaptor<NotificationLogJpaEntity> captor = ArgumentCaptor.forClass(NotificationLogJpaEntity.class);
         verify(repository).save(captor.capture());
         assertEquals("PENDING", captor.getValue().getStatus());
+        assertEquals("TEST_PROVIDER", captor.getValue().getProviderId());
+        assertEquals("HOSP-1", captor.getValue().getHospitalId());
     }
 
     @Test

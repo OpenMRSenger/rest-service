@@ -64,7 +64,7 @@ public class NotificationEventListener {
             }
 
             // 2. Mark as PENDING before attempting to send (in a separate transaction if possible)
-            notificationLogService.logPending(event.getEventId());
+            notificationLogService.logPending(event.getEventId(), event.getProviderId(), event.getHospitalId());
 
             log.info("Processing event {} for patient {} via provider {}", event.getEventId(), event.getPatientId(), event.getProviderId());
 
