@@ -235,7 +235,14 @@ export const options = {
     },
   },
   thresholds: {
-    http_req_duration: ['p(95)<1000'],
-    http_req_failed: ['rate<0.05'],
+    // Baseline/soak: outbox accept is fast; spike allows degradation under 300 RPS burst.
+    // Error rate is tight because injected failures still return 200 (accepted into outbox,
+    // failed asynchronously via retry queues -> DLQ) — only real infra errors count here.
+    'http_req_duration{test_phase:baseline}': ['p(95)<500'],
+    'http_req_duration{test_phase:spike}': ['p(95)<2000'],
+    'http_req_duration{test_phase:soak}': ['p(95)<500'],
+    'http_req_failed{test_phase:baseline}': ['rate<0.02'],
+    'http_req_failed{test_phase:spike}': ['rate<0.05'],
+    'http_req_failed{test_phase:soak}': ['rate<0.02'],
   },
 };
