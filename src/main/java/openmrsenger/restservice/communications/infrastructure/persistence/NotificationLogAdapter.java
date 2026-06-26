@@ -1,6 +1,8 @@
 package openmrsenger.restservice.communications.infrastructure.persistence;
 
 import openmrsenger.restservice.communications.application.NotificationLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +11,7 @@ import java.util.UUID;
 @Component
 public class NotificationLogAdapter implements NotificationLogService {
 
+    private static final Logger log = LoggerFactory.getLogger(NotificationLogAdapter.class);
     private final SpringDataNotificationLogRepository repository;
 
     public NotificationLogAdapter(SpringDataNotificationLogRepository repository) {
@@ -25,13 +28,16 @@ public class NotificationLogAdapter implements NotificationLogService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void logPending(UUID eventId) {
+    public void logPending(UUID eventId, String providerId, String hospitalId) {
+        log.info("Logging pending notification: eventId={}, providerId={}, hospitalId={}", eventId, providerId, hospitalId);
         NotificationLogJpaEntity entity = repository.findById(eventId)
                 .orElseGet(() -> new NotificationLogJpaEntity(eventId));
         
         // Only set to PENDING if not already SENT
         if (!"SENT".equals(entity.getStatus())) {
             entity.setStatus("PENDING");
+            entity.setProviderId(providerId);
+            entity.setHospitalId(hospitalId);
             repository.save(entity);
         }
     }
