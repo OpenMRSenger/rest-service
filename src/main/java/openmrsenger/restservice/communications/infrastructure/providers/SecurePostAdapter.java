@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import openmrsenger.restservice.communications.domain.MessagingProviderPort;
 import openmrsenger.restservice.communications.infrastructure.config.ProviderConfig.SecurePostConfig;
 import openmrsenger.restservice.shared.event.NotificationRequestedEvent;
+import openmrsenger.restservice.shared.logging.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLParameters;
 
 @Component
 public class SecurePostAdapter implements MessagingProviderPort {
@@ -31,7 +33,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
         private String accessToken;
         private Instant expiryTime;
 
-        private final HttpClient httpClient = HttpClient.newHttpClient();
+        private final HttpClient httpClient;
 
         private final String studentGroup;
 
@@ -42,6 +44,12 @@ public class SecurePostAdapter implements MessagingProviderPort {
                 this.objectMapper = objectMapper;
                 this.baseApiUrl = baseApiUrl;
                 this.studentGroup = studentGroup;
+
+                SSLParameters sslParameters = new SSLParameters();
+                sslParameters.setProtocols(new String[]{"TLSv1.3"});
+                this.httpClient = HttpClient.newBuilder()
+                                .sslParameters(sslParameters)
+                                .build();
         }
 
         @Override
@@ -55,7 +63,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                 log.info(
                                 "Starting SecurePost notification for patientId={}, phone={}",
                                 event.getPatientId(),
-                                event.getPhoneNumber());
+                                LogSanitizer.maskPhone(event.getPhoneNumber()));
 
                 try {
                         SecurePostConfig config = objectMapper.readValue(configurationJson, SecurePostConfig.class);
@@ -87,7 +95,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                                         .build();
 
                         log.debug("Sending SecurePost request to {}", targetUrl);
-                        log.debug("Payload={}", jsonPayload);
+                        log.debug("Payload={}", LogSanitizer.maskPayload(jsonPayload));
 
                         // Step 3: Execute request
                         HttpResponse<String> response = httpClient.send(
@@ -107,7 +115,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
 
                         log.info(
                                         "SecurePost message successfully sent to {}. Status={}",
-                                        event.getPhoneNumber(),
+                                        LogSanitizer.maskPhone(event.getPhoneNumber()),
                                         response.statusCode());
 
                         log.debug("SecurePost response body={}", response.body());
@@ -117,18 +125,17 @@ public class SecurePostAdapter implements MessagingProviderPort {
                         log.error(
                                         "JSON parsing error in SecurePost configuration for patientId={}, phone={}",
                                         event.getPatientId(),
-                                        event.getPhoneNumber(),
-                                        exception);
+                                        LogSanitizer.maskPhone(event.getPhoneNumber()));
 
                         throw new IllegalArgumentException(
-                                        "Invalid SecurePost configuration format", exception);
+                                        "Invalid SecurePost configuration format: " + (exception.getOriginalMessage() != null ? exception.getOriginalMessage() : "Invalid JSON format"));
 
                 } catch (IOException exception) {
 
                         log.error(
                                         "IO error while communicating with SecurePost for patientId={}, phone={}",
                                         event.getPatientId(),
-                                        event.getPhoneNumber(),
+                                        LogSanitizer.maskPhone(event.getPhoneNumber()),
                                         exception);
 
                         throw new IllegalStateException(
@@ -142,7 +149,7 @@ public class SecurePostAdapter implements MessagingProviderPort {
                         log.error(
                                         "SecurePost request interrupted for patientId={}, phone={}",
                                         event.getPatientId(),
-                                        event.getPhoneNumber(),
+                                        LogSanitizer.maskPhone(event.getPhoneNumber()),
                                         exception);
 
                         throw new IllegalStateException(

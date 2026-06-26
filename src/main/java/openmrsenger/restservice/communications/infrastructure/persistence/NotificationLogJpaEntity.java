@@ -19,8 +19,12 @@ public class NotificationLogJpaEntity {
     private LocalDateTime createdAt;
     
     private LocalDateTime processedAt;
-    
+
     private String errorMessage;
+
+    private String providerId;
+
+    private String hospitalId;
 
     public NotificationLogJpaEntity() {
     }
@@ -69,6 +73,22 @@ public class NotificationLogJpaEntity {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
+    }
+
+    public String getHospitalId() {
+        return hospitalId;
+    }
+
+    public void setHospitalId(String hospitalId) {
+        this.hospitalId = hospitalId;
     }
 
     public void markAsSent() {

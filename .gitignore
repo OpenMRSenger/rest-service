@@ -28,3 +28,4 @@ replay_pid*
 /target/
 /.agents/
 skills-lock.json
+inputFiles.lst

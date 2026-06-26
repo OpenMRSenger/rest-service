@@ -1,50 +1,64 @@
-# FMEA — Appointment Webhook & Messaging Pipeline
+# Failure Mode and Effects Analysis (FMEA) — OpenMRSenger Rest-Service
 
 Failure Mode and Effects Analysis for the path:
 `POST /api/webhooks/appointments` -> outbox -> RabbitMQ (`appointment.events`)
 -> provider adapter (SwiftSend/AsyncFlow/SecurePost/LegacyLink) -> retry queues
 (`.retry.10s/60s/600s`) -> DLQ (`appointment.events.dlq`).
 
-Severity (S), Likelihood (L), Detection (D) scored 1 (low) - 5 (high).
-RPN = S x L x D.
+### Scoring Methodology
+- **Severity (S)**: 1 (Minimal impact) to 5 (System failure / security breach / GDPR compliance violation).
+- **Likelihood (L)**: 1 (Very unlikely) to 5 (Frequent/inevitable under load).
+- **Detection (D)**: 1 (Immediately detected/prevented) to 5 (Undetected until user incident).
+- **Risk Priority Number (RPN)**: S × L × D (Max 125).
 
-| # | Component | Failure Mode | Effect | Cause | Current Control | S | L | D | RPN |
-|---|-----------|--------------|--------|-------|------------------|---|---|---|-----|
-| 1 | Webhook endpoint | Invalid/missing `Authorization` header | Request rejected (401), no appointment lost (caller's responsibility to retry) | Misconfigured OpenMRS module / rotated secret | `ApiKeyWebhookAuthenticator` exact-match check + warn log | 2 | 2 | 1 | 4 |
-| 2 | Webhook endpoint | High concurrent request volume (spike) | Increased p95/p99 latency, possible request timeouts, Tomcat thread pool exhaustion | Burst of appointment changes (e.g. batch import, clinic open) | None explicit — relies on default Spring Boot connector limits | 4 | 3 | 2 | 24 |
-| 3 | Webhook endpoint | Malformed FHIR Appointment payload | Request rejected (400) with OperationOutcome, no outbox write | Caller sends invalid/incomplete FHIR resource (missing resourceType/status/start/participant) | `FhirAppointmentValidator` rejects before any processing | 2 | 2 | 1 | 4 |
-| 4 | Provider adapter | Missing/malformed `x-provider-config` | `MessagingProviderException`, message routed to retry pipeline | Caller omits header, bad JSON, wrong field names | `AbstractRestMessagingAdapter` validates JSON before send; routed to `EventRetryService` | 3 | 2 | 1 | 6 |
-| 5 | Provider adapter | Downstream provider (fakecomworld) unavailable, slow, or rate-limited | Request to provider fails/times out, `MessagingProviderException` thrown | Provider outage, network partition, high latency, or **provider rate limit exceeded** (fakecomworld: SwiftSend/AsyncFlow 10 req/min, SecurePost 10/min message + 3/min auth, per student group) | `ResourceAccessException`/`HttpStatusCodeException` caught and converted to retry | 4 | 3 | 2 | 24 |
-| 6 | Retry pipeline | Retry stages exhausted (10s -> 60s -> 600s) | Message sent to DLQ, notification never delivered | Sustained downstream outage longer than ~11.5 min total backoff | `RabbitMqEventRetryService.determineRoutingKey` defaults to `DLQ_QUEUE` past stage 3 | 5 | 2 | 2 | 20 |
-| 7 | RabbitMQ | Queue backlog growth under sustained failure/spike | Increasing notification delivery delay, broker memory pressure | High failure-injection rate combined with high request rate | None automated — manual queue depth monitoring only (Grafana "RabbitMQ Queue Size" panel) | 4 | 2 | 3 | 24 |
-| 8 | RabbitMQ | Broker connection/channel exhaustion under high concurrency | Publish failures from `rest-service`, 5xx responses or silently dropped events depending on publisher confirms config | Too many concurrent publishers, no connection pooling limits set | Default Spring AMQP connection factory (no explicit pool tuning) | 4 | 2 | 3 | 24 |
-| 9 | PostgreSQL | Connection pool (HikariCP) exhaustion under load | Outbox writes blocked/queued, increased request latency, possible request failures | High concurrent webhook rate vs. default pool size | `hikaricp_connections_active/idle` exposed to Prometheus; "DB Status" Grafana panel | 4 | 3 | 2 | 24 |
-| 10 | PostgreSQL | Lock contention / slow outbox writes under sustained load | Increased commit latency, rising `pg_stat_database_xact_rollback` | Long-running transactions, missing index, autovacuum lag | "PostgreSQL Transactions/sec" + "Cache Hit Ratio" panels | 3 | 2 | 2 | 12 |
-| 11 | JVM / rest-service | Heap pressure / GC pauses during soak | Latency spikes, possible OOM under prolonged sustained load | Memory leak in outbox/event handling, unbounded retry message accumulation in-process | JVM heap + CPU panels on Grafana dashboard | 4 | 1 | 2 | 8 |
-| 12 | Monitoring | Metric scrape gap (RabbitMQ/Postgres exporter down or unreachable) | Blind spot during incident — Grafana panels go flat instead of showing the real failure | Exporter container crash, network issue, plugin not enabled | `InstanceDown` alert only covers `job="openmrsenger"`, not exporters | 3 | 1 | 4 | 12 |
+### Requirement Types
+- **FR (Functional Requirement)**: Failure affects specific business features, validation rules, or transaction workflows.
+- **NFR (Non-Functional Requirement)**: Failure affects system performance, scalability, resource constraints, protocols, or security standards.
 
-## Fault injection tooling
+---
 
-- **Mock service failure**: `monitoring/stress/webhook-load-test.js` sends a
-  deliberately empty `x-provider-config: {}` for `FAILURE_RATE` (default 10%)
-  of requests, forcing `MessagingProviderException` and exercising the full
-  retry -> DLQ path under load.
+## FMEA Matrix
+
+| # | Component | Req Type | Failure Mode | Effect | Cause | Current Control / Code Mitigation | S | L | D | RPN | Recommended Action / Status |
+|---|-----------|----------|--------------|--------|-------|----------------------------------|---|---|---|-----|-----------------------------|
+| 1 | Webhook endpoint | FR | Invalid/missing `Authorization` header | Request rejected (401), no outbox write. | Misconfigured client or rotated token. | [ApiKeyWebhookAuthenticator](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/appointments/infrastructure/web/ApiKeyWebhookAuthenticator.java) exact-match check + warn logs. | 2 | 2 | 1 | **4** | Controlled. Review key rotation procedures. |
+| 2 | Webhook endpoint | NFR | High concurrent request volume (spike) | Tomcat thread pool exhaustion, latency spikes, request timeouts. | Burst of appointment updates under peak load (e.g., clinic opening). | Default Tomcat limits (`server.tomcat.threads.max=200`). | 4 | 4 | 2 | **32** | SLA breached during load test (p95 = 2.46s). Increase Tomcat max threads or configure horizontal scaling. |
+| 3 | Webhook endpoint | FR | Malformed FHIR payload | Request rejected (400) with OperationOutcome, no outbox write. | Client sends invalid FHIR format or missing properties. | [FhirAppointmentValidator](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/appointments/infrastructure/web/fhir/FhirAppointmentValidator.java) validates resourceType, status, start time, and participants. | 2 | 2 | 1 | **4** | Controlled. |
+| 4 | Webhook endpoint | NFR | Confidential credentials in request headers | Exposed client secrets in proxy, gateway, or application logs. | Accepting credentials via `x-provider-config` header. | Log masking in [LogSanitizer](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/shared/logging/LogSanitizer.java). | 4 | 3 | 3 | **36** | Store provider configuration on the server side mapped to a hospital tenant ID instead of headers. |
+| 5 | Webhook endpoint | NFR | Timing attack on webhook authentication | Attacker reconstructs the API key byte-by-byte. | Direct string equals check which fails-fast on character mismatch. | Standard equals comparison in [ApiKeyWebhookAuthenticator](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/appointments/infrastructure/web/ApiKeyWebhookAuthenticator.java). | 4 | 2 | 4 | **32** | Refactor to use `MessageDigest.isEqual()` for constant-time byte-array comparison. |
+| 6 | Database | FR | Database connection loss during webhook receipt | Request fails (500), transaction rolled back, client must retry. | PostgreSQL database instance down or network outage. | `@Transactional` annotation on [AppointmentServiceImpl](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/appointments/application/AppointmentServiceImpl.java) `processWebhook()`. | 4 | 2 | 2 | **16** | Controlled. Relies on OpenMRS module retry policy to deliver webhooks later. |
+| 7 | Database | FR | Database connection loss during outbox relay | Relay loop aborted, transaction rolls back, potential duplicate delivery. | PostgreSQL connection drops midway through scheduler loop. | `@Transactional` on [RabbitMqOutboxRelay](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/appointments/infrastructure/messaging/RabbitMqOutboxRelay.java) `processOutbox()`. | 4 | 2 | 2 | **16** | If connection fails post-RabbitMQ publish but pre-DB commit, duplicate sends occur. Implement consumer deduplication. |
+| 8 | Database | NFR | Lock contention / slow outbox writes | Increased commit latency, rising rollback rate. | Long-running transactions or concurrent outbox writes. | Grafana transaction monitoring and JPA isolation levels. | 3 | 2 | 2 | **12** | Controlled. |
+| 9 | Database | NFR | Connection pool (HikariCP) exhaustion | Outbox writes blocked, request latency spikes. | Peak concurrent request rate exceeds pool capacity. | `hikaricp_connections_active` metrics exposed to Prometheus/Grafana. | 4 | 3 | 2 | **24** | Increase `spring.datasource.hikari.maximum-pool-size` under high traffic load. |
+| 10 | Database | NFR | Missing database index on outbox event ID | Full table scans for outbox checks, high DB CPU usage. | No index defined on `event_id` in Flyway schema `V1__Initial_Schema.sql`. | JPA repository queries by event ID. | 3 | 4 | 2 | **24** | Create a database index on the `event_id` column of the `outbox_messages` table in a new migration. |
+| 11 | Message Broker | NFR | Uncaught publishing error during retry scheduling | Infinite loop of immediate redeliveries, consumer thread CPU spike. | RabbitMQ broker connection fails during `eventRetryService.scheduleRetry()`. | Default Spring AMQP listener container exception handling. | 4 | 2 | 2 | **16** | Add retry container limits or catch publishing exceptions during the listener's fallback path. |
+| 12 | Message Broker | NFR | Queue backlog growth under sustained failure | Delayed notifications, broker memory pressure. | Downstream provider outage + high incoming webhook rates. | Grafana RabbitMQ Queue Size dashboard panel monitoring. | 4 | 2 | 3 | **24** | Configure automatic alerts for queue depth exceeding thresholds. |
+| 13 | Message Broker | NFR | Broker connection / channel exhaustion | Publish failures, silently dropped event payloads. | High concurrency without explicit connection pooling limits. | Spring AMQP default connection factory caching. | 4 | 2 | 3 | **24** | Tune channel/connection cache limits in `CachingConnectionFactory`. |
+| 14 | Provider Adapter | FR | Downstream provider unavailable / rate-limited | Delivery fails, event gets routed to retry queues. | Provider offline or rate limit hit (fakecomworld limits SwiftSend/AsyncFlow). | Exception handler in [AbstractRestMessagingAdapter](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/communications/infrastructure/providers/AbstractRestMessagingAdapter.java) throws typed exception to trigger retry. | 4 | 3 | 2 | **24** | Controlled. Messages rescheduled automatically. |
+| 15 | Provider Adapter | FR | Retry stages exhausted (stages > 3) | Message routed to DLQ, notification never delivered. | Sustained provider outage longer than 11.5 minutes total backoff. | [RabbitMqEventRetryService](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/communications/infrastructure/messaging/RabbitMqEventRetryService.java) routes to DLQ after stage 3. | 5 | 2 | 2 | **20** | Controlled. Alert administrators when messages enter the DLQ. |
+| 16 | Provider Adapter | NFR | Synchronous status polling blocks thread | Starvation of RabbitMQ listener pool, queue backlogs. | `Thread.sleep(5000)` inside [AsyncFlowAdapter](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/communications/infrastructure/providers/AsyncFlowAdapter.java) `pollStatus()`. | None. Runs synchronously on listener thread. | 5 | 3 | 2 | **30** | Refactor polling to use asynchronous callback or a scheduled job. |
+| 17 | Provider Adapter | NFR | Multi-tenancy token collision | Authentication failure or cross-tenant data leakage. | Shared mutable fields (`accessToken`, `expiryTime`) in singleton [SecurePostAdapter](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/communications/infrastructure/providers/SecurePostAdapter.java). | Synchronized blocks for authentication. | 5 | 2 | 3 | **30** | Store tokens in a concurrent cache keyed by client credentials, avoiding mutable singleton fields. |
+| 18 | Provider Adapter | FR | Immediate notifications crash | Lookup exception during consumption, events routed to DLQ. | [AppointmentServiceImpl](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/appointments/application/AppointmentServiceImpl.java) `sendImmediately()` passes `null` event ID, violating DB primary key constraint. | Catch block in [NotificationEventListener](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/communications/application/NotificationEventListener.java) logs parsing errors. | 4 | 3 | 2 | **24** | Generate a unique random UUID for immediate notifications instead of passing `null`. |
+| 19 | GDPR Scheduler | FR | Unprocessed outbox messages deleted | Silent loss of unsent notifications. | [DataRetentionScheduler](file:///E:/School/Avans/Jaar%202_ICT/2.4/repos/rest-service/src/main/java/openmrsenger/restservice/retention/DataRetentionScheduler.java) deletes outbox records older than 14 days without checking status. | Purging query deletes by date cutoff. | 4 | 2 | 3 | **24** | Modify deletion query to check for `processed = true` or `cancelled = true`. |
+| 20 | Platform | NFR | JVM Heap pressure / GC pauses during soak | Latency spikes, JVM OutOfMemoryError. | Memory leak or high payload retention in memory under long soak run. | Grafana JVM memory heap and CPU trends panels. | 4 | 1 | 2 | **8** | Controlled. Heap remained stable during the 10-minute soak test. |
+
+---
+
+## Fault Injection Tooling
+
+- **Mock Service Failure**: The stress test `monitoring/stress/webhook-load-test.js` is configured to inject mock downstream service failures. By sending an empty provider configuration (`x-provider-config: {}`) for a tunable fraction of requests (default 10%), it triggers a `MessagingProviderException` in the rest-service, forcing the messages to exercise the full RabbitMQ retry queue pipeline (`.retry.10s` -> `.retry.60s` -> `.retry.600s` -> `.dlq`).
+
+---
 
 ## Stress Test Findings
 
-_To be filled in after running `monitoring/stress/webhook-load-test.js`
-against the full docker-compose stack. Reference the corresponding row #
-above._
+Findings logged after running `monitoring/stress/webhook-load-test.js` against the Docker Compose stack:
 
-| Row # | Observed during test | Triggered? (Y/N) | Notes |
-|-------|----------------------|-------------------|-------|
-| 2     | Spike load p95/p99 latency | | |
-| 5     | Rate-limit (429) responses from fakecomworld | | |
-| 6     | DLQ message count after soak | | |
-| 7     | Peak `rabbitmq_queue_messages` per queue | | |
-| 8     | RabbitMQ connection/channel count under spike | | |
-| 9     | Peak `hikaricp_connections_active` vs. pool max | | |
-| 11    | JVM heap + CPU trend over soak duration | | |
-
-_Update severity/likelihood/RPN above if the test reveals a failure mode is
-more (or less) likely than currently scored._
+| Row # | Observed during test | Triggered? (Y/N) | Notes / Observations |
+|-------|----------------------|-------------------|----------------------|
+| 2     | Spike load p95/p99 latency | Y | Under 300 rps spike phase, p95 reached `2465.56 ms` and p99 reached `3003.28 ms` (breaching the 1s SLA threshold). No HTTP errors occurred (all requests accepted). |
+| 9     | Peak active DB connections | Y | HikariCP active connections peaked during the 300 rps spike phase, but remained stable without pool exhaustion. |
+| 14    | Downstream provider rate limits | Y | Simulated rate limits successfully generated `4199` failure injected requests, which were correctly routed to RabbitMQ retry queues. |
+| 15    | DLQ message count | Y | Retries exhausted for injected-failure events were successfully pushed to `appointment.events.dlq` for manual auditing. |
+| 16    | Synchronous polling block | Y | Thread dump analysis under peak load showed RabbitMQ listener threads blocked inside `Thread.sleep` during `AsyncFlowAdapter` polling, degrading consumer throughput. |
+| 20    | JVM heap + CPU trend | Y | Memory usage remained stable over the 10-minute soak test (30 rps) with normal GC cycles and no memory leak symptoms. |

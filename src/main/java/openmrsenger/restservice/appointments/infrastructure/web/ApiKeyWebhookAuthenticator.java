@@ -12,14 +12,18 @@ public class ApiKeyWebhookAuthenticator implements WebhookAuthenticator {
     private static final Logger log = LoggerFactory.getLogger(ApiKeyWebhookAuthenticator.class);
     private final String secretKey;
 
-    public ApiKeyWebhookAuthenticator(@Value("${webhook.secret:my-secret-key}") String secretKey) {
+    public ApiKeyWebhookAuthenticator(@Value("${webhook.secret}") String secretKey) {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "webhook.secret is not configured. Set the WEBHOOK_SECRET environment variable.");
+        }
         this.secretKey = secretKey;
     }
 
     @Override
     public boolean authenticate(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        log.info("Received webhook with Authorization header: {}", authHeader);
+        log.info("Received webhook with Authorization header: {}", authHeader != null ? "[PRESENT]" : "[MISSING]");
         if (authHeader == null) {
             log.warn("Webhook received without Authorization header");
             return false;

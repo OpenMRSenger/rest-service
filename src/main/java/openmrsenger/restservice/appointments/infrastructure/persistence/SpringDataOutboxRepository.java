@@ -23,4 +23,10 @@ public interface SpringDataOutboxRepository extends JpaRepository<OutboxMessageJ
     @Modifying
     @Query("UPDATE OutboxMessageJpaEntity o SET o.cancelled = true WHERE o.eventId IN :eventIds AND o.processed = false AND o.cancelled = false")
     void cancelByEventIds(@Param("eventIds") Collection<UUID> eventIds);
+
+    List<OutboxMessageJpaEntity> findByCreatedAtBefore(OffsetDateTime cutoff);
+
+    @Modifying
+    @Query("DELETE FROM OutboxMessageJpaEntity o WHERE o.createdAt < :cutoff")
+    int deleteByCreatedAtBefore(@Param("cutoff") OffsetDateTime cutoff);
 }

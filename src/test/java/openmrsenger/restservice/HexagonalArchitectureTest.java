@@ -6,8 +6,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.GeneralCodingRules;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
-import static com.tngtech.archunit.library.Architectures.onionArchitecture;
+
 
 @AnalyzeClasses(packages = "openmrsenger.restservice")
 class HexagonalArchitectureTest {
@@ -48,6 +47,7 @@ class HexagonalArchitectureTest {
                     "org.slf4j..",
                     "com.fasterxml.jackson..",
                     "org.springframework..",
+                    "io.micrometer..",
                     "org.junit..",
                     "org.mockito..");
 }
